@@ -1,0 +1,65 @@
+{
+  "configuration": {
+    "model": "bert",
+    "use_optimization": false,
+    "use_gnn_explainer": false,
+    "train_samples": 10,
+    "test_samples": 10,
+    "labels": [
+      "Arithmetic",
+      "LowLevelCall",
+      "DoS",
+      "TimeManipulation",
+      "Reentrancy"
+    ],
+    "gpu_config": {
+      "available": true,
+      "device": "cuda",
+      "device_count": 1,
+      "device_names": [
+        "NVIDIA GeForce RTX 2050"
+      ],
+      "total_memory_gb": [
+        "3.68"
+      ],
+      "use_multi_gpu": false
+    }
+  },
+  "results": {
+    "bert": {
+      "model_name": "bert-base-uncased",
+      "train_loss": 0.7090291976928711,
+      "train_time": 7.216033458709717,
+      "eval_results": {
+        "eval_loss": 0.6257854700088501,
+        "eval_accuracy": 0.2,
+        "eval_precision": 0.24,
+        "eval_recall": 0.4,
+        "eval_f1": 0.2817813765182186,
+        "eval_precision_micro": 0.6,
+        "eval_recall_micro": 0.5454545454545454,
+        "eval_f1_micro": 0.5714285714285714,
+        "eval_runtime": 0.5763,
+        "eval_samples_per_second": 17.352,
+        "eval_steps_per_second": 1.735,
+        "epoch": 1.0
+      },
+      "inference_time": 0.5768585205078125,
+      "num_train_samples": 10,
+      "num_test_samples": 10,
+      "gpu_config": {
+        "available": true,
+        "device": "cuda",
+        "device_count": 1,
+        "device_names": [
+          "NVIDIA GeForce RTX 2050"
+        ],
+        "total_memory_gb": [
+          "3.68"
+        ],
+        "use_multi_gpu": false
+      }
+    }
+  },
+  "timestamp": "2025-11-23T22:42:46.470541"
+}
