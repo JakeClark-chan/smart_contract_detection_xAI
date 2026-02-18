@@ -324,4 +324,7 @@ Smart Contract Vulnerability Detection using XAI and BERT-based Models
 
 ## Contact
 
-For questions or issues, please open an issue on the repository or contact [your email].
+For questions or issues, please open an issue on the repository or contact nope@nope.com.
+
+## TL;DR
+export KAGGLE_API_TOKEN=$(grep KAGGLE_API_TOKEN .env | cut -d= -f2) && export KAGGLE_USERNAME=jakeclark38a && export KAGGLE_KEY="$KAGGLE_API_TOKEN" && kaggle datasets download -d jakeclark38a/smart-contract-vulnerability-detection --unzip -p .
