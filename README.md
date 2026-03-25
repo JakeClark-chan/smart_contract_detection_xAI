@@ -311,14 +311,14 @@ This implementation is based on the research proposal:
 If you use this code, please cite:
 ```
 Smart Contract Vulnerability Detection using XAI and BERT-based Models
-[Your Name], 2024
+Bruh, 2024
 ```
 
 ---
 
 ## License
 
-[Specify your license]
+Bruh
 
 ---
 
