@@ -20,3 +20,6 @@ NCKHSV*/
 
 # Dataset
 *.csv
+
+# Output folder
+kaggle_output/
