@@ -1,0 +1,127 @@
+2026-03-26 14:00:07,985 - utils - INFO - Setting random seed: 42
+2026-03-26 14:00:07,986 - __main__ - INFO - ======================================================================
+2026-03-26 14:00:07,986 - __main__ - INFO - Dataset Generation with XAI Optimizations (Multi-process)
+2026-03-26 14:00:07,986 - __main__ - INFO - Using 12 CPU cores with batch size 100
+2026-03-26 14:00:07,987 - __main__ - INFO - ======================================================================
+2026-03-26 14:00:07,987 - __main__ - INFO - Starting Complete dataset generation...
+2026-03-26 14:00:07,987 - data_loader - INFO - Starting load_train_test_datasets...
+2026-03-26 14:00:07,987 - data_loader - INFO - Loading Reentrancy mapping from soliaudit_dasp_v2.csv
+2026-03-26 14:00:13,566 - data_loader - INFO - Loaded Reentrancy mapping for 17817 addresses
+2026-03-26 14:00:13,567 - data_loader - INFO -   - Reentrancy positives: 7170
+2026-03-26 14:00:13,567 - data_loader - INFO - Starting load_dataset_from_file...
+2026-03-26 14:00:13,568 - data_loader - INFO - Loading dataset from: soliaudit_graph_train.csv
+2026-03-26 14:00:13,568 - data_loader - INFO - Starting Loading soliaudit_graph_train.csv...
+2026-03-26 14:01:01,634 - data_loader - INFO - Completed Loading soliaudit_graph_train.csv in 48.07 seconds (0.80 minutes)
+2026-03-26 14:01:01,635 - data_loader - INFO - Loaded 8444 rows from CSV
+2026-03-26 14:01:01,635 - data_loader - INFO - Extracting data...
+2026-03-26 14:01:01,663 - data_loader - INFO - Valid samples (with AST): 8444 / 8444
+2026-03-26 14:01:01,666 - data_loader - INFO - Completed load_dataset_from_file in 48.10 seconds (0.80 minutes)
+2026-03-26 14:01:01,666 - data_loader - INFO - Starting load_dataset_from_file...
+2026-03-26 14:01:01,667 - data_loader - INFO - Loading dataset from: soliaudit_graph_test.csv
+2026-03-26 14:01:01,667 - data_loader - INFO - Starting Loading soliaudit_graph_test.csv...
+2026-03-26 14:01:07,924 - data_loader - INFO - Completed Loading soliaudit_graph_test.csv in 6.26 seconds (0.10 minutes)
+2026-03-26 14:01:07,924 - data_loader - INFO - Loaded 2111 rows from CSV
+2026-03-26 14:01:07,924 - data_loader - INFO - Extracting data...
+2026-03-26 14:01:07,927 - data_loader - INFO - Valid samples (with AST): 2111 / 2111
+2026-03-26 14:01:07,927 - data_loader - INFO - Completed load_dataset_from_file in 6.26 seconds (0.10 minutes)
+2026-03-26 14:01:07,927 - data_loader - INFO - Train set: 8444 samples
+2026-03-26 14:01:07,927 - data_loader - INFO - Test set: 2111 samples
+2026-03-26 14:01:07,927 - data_loader - INFO - Saving train/test datasets to pickle cache
+2026-03-26 14:01:07,928 - data_loader - INFO - Starting Saving pickle to train_dataset.pkl...
+2026-03-26 14:01:13,159 - data_loader - INFO - Completed Saving pickle to train_dataset.pkl in 5.23 seconds (0.09 minutes)
+2026-03-26 14:01:13,160 - data_loader - INFO - Saved train_dataset.pkl (3219.26 MB)
+2026-03-26 14:01:13,160 - data_loader - INFO - Starting Saving pickle to test_dataset.pkl...
+2026-03-26 14:01:13,823 - data_loader - INFO - Completed Saving pickle to test_dataset.pkl in 0.66 seconds (0.01 minutes)
+2026-03-26 14:01:13,823 - data_loader - INFO - Saved test_dataset.pkl (803.87 MB)
+2026-03-26 14:01:13,823 - data_loader - INFO - 
+=== Train Set Statistics ===
+2026-03-26 14:01:13,824 - data_loader - INFO - 
+======================================================================
+2026-03-26 14:01:13,824 - data_loader - INFO - Dataset Statistics:
+2026-03-26 14:01:13,824 - data_loader - INFO - ======================================================================
+2026-03-26 14:01:13,824 - data_loader - INFO - Total samples: 8444
+2026-03-26 14:01:13,824 - data_loader - INFO - Label distribution:
+2026-03-26 14:01:13,824 - data_loader - INFO -   - Arithmetic: 7810 (92.49%)
+2026-03-26 14:01:13,824 - data_loader - INFO -   - LowLevelCall: 4721 (55.91%)
+2026-03-26 14:01:13,824 - data_loader - INFO -   - DoS: 3939 (46.65%)
+2026-03-26 14:01:13,824 - data_loader - INFO -   - TimeManipulation: 2671 (31.63%)
+2026-03-26 14:01:13,824 - data_loader - INFO -   - Reentrancy: 3305 (39.14%)
+2026-03-26 14:01:13,825 - data_loader - INFO - 
+Multi-label statistics:
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Samples with at least 1 vulnerability: 8256 (97.77%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Samples with multiple vulnerabilities: 6603 (78.20%)
+2026-03-26 14:01:13,825 - data_loader - INFO - ======================================================================
+
+2026-03-26 14:01:13,825 - data_loader - INFO - 
+=== Test Set Statistics ===
+2026-03-26 14:01:13,825 - data_loader - INFO - 
+======================================================================
+2026-03-26 14:01:13,825 - data_loader - INFO - Dataset Statistics:
+2026-03-26 14:01:13,825 - data_loader - INFO - ======================================================================
+2026-03-26 14:01:13,825 - data_loader - INFO - Total samples: 2111
+2026-03-26 14:01:13,825 - data_loader - INFO - Label distribution:
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Arithmetic: 1952 (92.47%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - LowLevelCall: 1180 (55.90%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - DoS: 985 (46.66%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - TimeManipulation: 668 (31.64%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Reentrancy: 826 (39.13%)
+2026-03-26 14:01:13,825 - data_loader - INFO - 
+Multi-label statistics:
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Samples with at least 1 vulnerability: 2053 (97.25%)
+2026-03-26 14:01:13,825 - data_loader - INFO -   - Samples with multiple vulnerabilities: 1614 (76.46%)
+2026-03-26 14:01:13,825 - data_loader - INFO - ======================================================================
+
+2026-03-26 14:01:13,826 - data_loader - INFO - Completed load_train_test_datasets in 65.84 seconds (1.10 minutes)
+2026-03-26 14:01:13,826 - __main__ - INFO - 
+--- Generating Train Dataset ---
+2026-03-26 14:01:13,826 - __main__ - INFO - Generating dataset for 8444 samples using 12 workers...
+2026-03-26 14:01:13,844 - __main__ - INFO - Split into 85 batches of ~100 samples each
+2026-03-26 14:01:13,845 - __main__ - INFO - Processing 8444 samples with 12 process workers...
+2026-03-26 14:01:13,845 - __main__ - INFO - Starting Multi-process dataset generation (12 workers)...
+2026-03-26 14:01:32,830 - __main__ - INFO - Progress: 500/8444 (5.9%)
+2026-03-26 14:01:33,838 - __main__ - INFO - Progress: 1000/8444 (11.8%)
+2026-03-26 14:01:43,318 - __main__ - INFO - Progress: 1500/8444 (17.8%)
+2026-03-26 14:01:49,743 - __main__ - INFO - Progress: 2000/8444 (23.7%)
+2026-03-26 14:01:55,646 - __main__ - INFO - Progress: 2500/8444 (29.6%)
+2026-03-26 14:02:00,322 - __main__ - INFO - Progress: 3000/8444 (35.5%)
+2026-03-26 14:02:05,373 - __main__ - INFO - Progress: 3500/8444 (41.4%)
+2026-03-26 14:02:11,928 - __main__ - INFO - Progress: 4000/8444 (47.4%)
+2026-03-26 14:02:15,244 - __main__ - INFO - Progress: 4500/8444 (53.3%)
+2026-03-26 14:02:22,137 - __main__ - INFO - Progress: 5000/8444 (59.2%)
+2026-03-26 14:02:27,072 - __main__ - INFO - Progress: 5500/8444 (65.1%)
+2026-03-26 14:02:30,905 - __main__ - INFO - Progress: 6000/8444 (71.1%)
+2026-03-26 14:02:38,495 - __main__ - INFO - Progress: 6500/8444 (77.0%)
+2026-03-26 14:02:43,147 - __main__ - INFO - Progress: 7000/8444 (82.9%)
+2026-03-26 14:02:53,280 - __main__ - INFO - Progress: 8444/8444 (100.0%)
+2026-03-26 14:02:53,433 - __main__ - INFO - Completed Multi-process dataset generation (12 workers) in 99.59 seconds (1.66 minutes)
+2026-03-26 14:02:57,225 - __main__ - INFO - Saved dataset to /home/jc/scripts/smart_contract_detection_xAI/output/train_optimized_dataset.csv (8444 rows)
+2026-03-26 14:02:57,282 - __main__ - INFO - 
+--- Generating Test Dataset ---
+2026-03-26 14:02:57,282 - __main__ - INFO - Generating dataset for 2111 samples using 12 workers...
+2026-03-26 14:02:57,285 - __main__ - INFO - Split into 22 batches of ~100 samples each
+2026-03-26 14:02:57,285 - __main__ - INFO - Processing 2111 samples with 12 process workers...
+2026-03-26 14:02:57,285 - __main__ - INFO - Starting Multi-process dataset generation (12 workers)...
+2026-03-26 14:03:10,890 - __main__ - INFO - Progress: 500/2111 (23.7%)
+2026-03-26 14:03:13,545 - __main__ - INFO - Progress: 1000/2111 (47.4%)
+2026-03-26 14:03:22,623 - __main__ - INFO - Progress: 2111/2111 (100.0%)
+2026-03-26 14:03:22,799 - __main__ - INFO - Completed Multi-process dataset generation (12 workers) in 25.51 seconds (0.43 minutes)
+2026-03-26 14:03:23,729 - __main__ - INFO - Saved dataset to /home/jc/scripts/smart_contract_detection_xAI/output/test_optimized_dataset.csv (2111 rows)
+2026-03-26 14:03:23,740 - __main__ - INFO - 
+======================================================================
+2026-03-26 14:03:23,740 - __main__ - INFO - Dataset Generation Complete!
+2026-03-26 14:03:23,740 - __main__ - INFO - ======================================================================
+2026-03-26 14:03:23,740 - __main__ - INFO - Train: /home/jc/scripts/smart_contract_detection_xAI/output/train_optimized_dataset.csv (8444 rows)
+2026-03-26 14:03:23,740 - __main__ - INFO - Test: /home/jc/scripts/smart_contract_detection_xAI/output/test_optimized_dataset.csv (2111 rows)
+2026-03-26 14:03:23,740 - __main__ - INFO - 
+Columns in generated datasets:
+2026-03-26 14:03:23,740 - __main__ - INFO -   - address
+2026-03-26 14:03:23,740 - __main__ - INFO -   - before_optimized
+2026-03-26 14:03:23,740 - __main__ - INFO -   - optimized_80p
+2026-03-26 14:03:23,741 - __main__ - INFO -   - optimized_50p
+2026-03-26 14:03:23,741 - __main__ - INFO -   - optimized_20p
+2026-03-26 14:03:23,741 - __main__ - INFO -   - Arithmetic
+2026-03-26 14:03:23,741 - __main__ - INFO -   - Unchecked Return Values For Low Level Calls
+2026-03-26 14:03:23,741 - __main__ - INFO -   - Denial of Service
+2026-03-26 14:03:23,741 - __main__ - INFO -   - Time manipulation
+2026-03-26 14:03:23,741 - __main__ - INFO -   - Reentrancy
+2026-03-26 14:03:23,741 - __main__ - INFO - Completed Complete dataset generation in 195.75 seconds (3.26 minutes)

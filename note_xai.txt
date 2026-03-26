@@ -1,15 +1,16 @@
 + XAI: GNN Explainer
 + **Thong ke node va edge truoc va sau khi toi uu**
-+ Thuc nghiem: 
++ Thuc nghiem:
   + Dataset: SoliAudit
   + Model: **BERT, DistilBERT, CodeBERT, GPT2 (Optional)**
   + Experiment: **Truoc (AST -> seq) va sau khi toi uu (AST -> GNN Ex -> ...)**, time train + inference
   + Comparison: AST + GNN (no seq), AST + GCN, time train + inference
 
 + **Threshold**: 80% node, 50% node, 20% node retained
-  
+
 + Report (30 pages): Ly thuyet, phuong phap, ket qua
-+ Dataset: https://www.kaggle.com/datasets/tranduongminhdai/soliaudit-cfg?select=soliaudit_dasp_v2.csv
++ Original dataset: https://www.kaggle.com/datasets/tranduongminhdai/soliaudit-cfg?select=soliaudit_dasp_v2.csv
++ Dataset: https://www.kaggle.com/datasets/jakeclark38a/smart-contract-vulnerability-detection
 
 Old Tasks:
 1. Dataset: Load 2 dataset train va test, lay AST va label, them 1 cai Reentrancy tu dasp_v2, dua vao pickle Dataset
@@ -24,4 +25,4 @@ New tasks:
 2. Thu nguong de dat muc truoc khi toi uu
 3. Liet ke so node va so edge , thong ke truoc so node va edge tung file sol mot, co bao nhieu sample co so node > 1000, 100,...
 4. Chay hang loat mo hinh tren dataset.
-5. So sanh ket qua voi cac mo hinh khac nhau o tren 
+5. So sanh ket qua voi cac mo hinh khac nhau o tren
