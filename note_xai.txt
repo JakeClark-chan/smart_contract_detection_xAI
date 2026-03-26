@@ -26,3 +26,13 @@ New tasks:
 3. Liet ke so node va so edge , thong ke truoc so node va edge tung file sol mot, co bao nhieu sample co so node > 1000, 100,...
 4. Chay hang loat mo hinh tren dataset.
 5. So sanh ket qua voi cac mo hinh khac nhau o tren
+
+Prompts:
+Okay let's bring my project into Kaggle for remote executing:
+* Update https://www.kaggle.com/datasets/jakeclark38a/smart-contract-vulnerability-detection by adding dataset from [@output](file:///home/jc/scripts/smart_contract_detection_xAI/output) dataset into this dataset, create new version and pin new version
+* Look at https://www.kaggle.com/code/jakeclark38a/smart-contract-vulnerability-detection-training and update code by using new dataset from [@output](file:///home/jc/scripts/smart_contract_detection_xAI/output) dataset
+* Create new version of Kaggle notebook running GPU and monitor training logs, if fails edit code, commit and notify me to submit commit and push to GitHub to try again
+* Expected outcome: it will use new dataset to generate tokens, train BERT model, save parameters into models folder, and output results of training and testing like what [@note_xai.txt](file:///home/jc/scripts/smart_contract_detection_xAI/note_xai.txt) wants
+
+Ket qua:
+BERT: https://www.kaggle.com/code/jakeclark38a/smart-contract-vulnerability-detection-training?scriptVersionId=306644976
