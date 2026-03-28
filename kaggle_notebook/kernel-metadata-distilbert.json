@@ -1,0 +1,15 @@
+{
+  "id": "jakeclarkchan/smart-contract-vulnerability-detection-distilbert",
+  "title": "Smart Contract Vulnerability Detection DistilBERT",
+  "code_file": "smart-contract-vulnerability-detection-distilbert.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": ["jakeclarkchan/smart-contract-vulnerability-detection"],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
