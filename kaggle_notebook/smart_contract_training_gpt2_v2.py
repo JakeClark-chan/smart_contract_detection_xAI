@@ -62,7 +62,7 @@ print("=" * 60)
 
 import pandas as pd
 
-dataset_dir = "/kaggle/input/smart-contract-vulnerability-detection"
+dataset_dir = "/kaggle/input/datasets/jakeclark38a/smart-contract-vulnerability-detection"
 
 train_df = pd.read_csv(os.path.join(dataset_dir, "train_optimized_dataset.csv"))
 test_df = pd.read_csv(os.path.join(dataset_dir, "test_optimized_dataset.csv"))
@@ -138,7 +138,7 @@ def parse_vulnerabilities(output_text, label_columns):
 
 
 class VulnerabilityDataset(TorchDataset):
-    def __init__(self, texts, labels, tokenizer, label_columns, max_length=1000):
+    def __init__(self, texts, labels, tokenizer, label_columns, max_length=None):
         self.texts = texts
         self.labels = labels
         self.tokenizer = tokenizer
@@ -256,8 +256,8 @@ def train_and_evaluate(column_name, train_df, test_df, label_columns, output_dir
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=10,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=4,
         learning_rate=2e-5,
         weight_decay=0.01,
         eval_strategy="epoch",
@@ -268,6 +268,7 @@ def train_and_evaluate(column_name, train_df, test_df, label_columns, output_dir
         logging_steps=100,
         report_to="none",
         gradient_accumulation_steps=2,
+        eval_accumulation_steps=10,
     )
 
     trainer = Trainer(

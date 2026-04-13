@@ -1,7 +1,7 @@
 {
-  "id": "jakeclark38a/smart-contract-vulnerability-detection-training",
-  "title": "Smart Contract Vulnerability Detection Training",
-  "code_file": "smart-contract-vulnerability-detection-training.ipynb",
+  "id": "jakeclark38a/smart-contract-vulnerability-detection-gpt2-v2",
+  "title": "Smart Contract Vulnerability Detection GPT2 v2",
+  "code_file": "smart-contract-vulnerability-detection-gpt2-v2.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
