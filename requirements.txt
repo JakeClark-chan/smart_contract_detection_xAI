@@ -1,9 +1,16 @@
-scikit-learn
-transformers
-networkx
-numpy
-pandas
+# Core ML/DL
 torch
-tqdm
 torch-geometric
-dotenv
+transformers
+datasets
+
+# Data Processing
+pandas
+numpy
+networkx
+
+# Machine Learning
+scikit-learn
+
+# Utilities
+python-dotenv

@@ -3,7 +3,7 @@ XAI Optimizer using GNN Explainer
 Identifies sensitive nodes and optimizes graphs for vulnerability detection
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import networkx as nx
 import numpy as np
@@ -189,7 +189,7 @@ def networkx_to_pyg(nx_graph: nx.DiGraph, labels: np.ndarray = None) -> Data:
 # ============================================================================
 # NODE IMPORTANCE COMPUTATION
 # ============================================================================
-def compute_node_importance_simple(nx_graph: nx.DiGraph) -> Dict[any, float]:
+def compute_node_importance_simple(nx_graph: nx.DiGraph) -> Dict[Any, float]:
     """
     Compute node importance using fast graph-based heuristics.
     Uses in-degree and out-degree for fast computation.

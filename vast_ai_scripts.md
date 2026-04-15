@@ -4,9 +4,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/JakeClark-chan/smart_contract_detection_xAI.git
 cd smart_contract_detection_xAI
 uv pip install -r requirements.txt
-uv pip install kaggle
-export KAGGLE_API_TOKEN=KGAT_57afc4e7bca72ee06ff06959f2bbdeb6
-kaggle datasets download -d jakeclark38a/smart-contract-vulnerability-detection --version 1
+
 ```
 Scripts to update all csv dataset:
 

@@ -5,7 +5,6 @@ General purpose script for AST sequence generation and optimization.
 
 import argparse
 import multiprocessing as mp
-import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple

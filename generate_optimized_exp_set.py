@@ -1,14 +1,14 @@
 """
 Generate Experimental Optimized Dataset (80/50/20% of baseline nodes)
 Handles both fast heuristic version and GNN Explainer version datasets.
+Integrates both versions into one combined dataset and optionally uploads to HuggingFace.
 """
 
 import argparse
-import multiprocessing as mp
-import os
+import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import torch
@@ -25,6 +25,7 @@ from generate_optimized_dataset import (
 from graph_processor import parse_cfg_json, process_dataset_to_graphs
 from utils import Timer, get_logger, set_seed, setup_logging
 from xai_optimizer import (
+    HAS_TORCH_GEOMETRIC,
     GNNClassifier,
     compute_node_importance_gnn,
     networkx_to_pyg,
@@ -36,10 +37,10 @@ logger = get_logger(__name__)
 
 def process_single_sample_exp(
     args: Tuple, gnn_model: Optional[GNNClassifier] = None
-) -> Dict:
+) -> Dict[str, Any]:
     """Process a single sample with baseline-relative optimization (80/50/20)."""
     idx, address, ast_json, labels = args
-    row = {
+    row: Dict[str, Any] = {
         "address": address,
         "Arithmetic": int(labels[0]),
         "Unchecked Return Values For Low Level Calls": int(labels[1]),
@@ -90,19 +91,19 @@ def process_single_sample_exp(
 
 def process_batch_exp(
     batch_args: List[Tuple], gnn_model: Optional[GNNClassifier] = None
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """Process a batch of samples."""
     return [process_single_sample_exp(args, gnn_model) for args in batch_args]
 
 
 def generate_exp_dataset(
-    dataset,
-    output_path,
-    gnn_model=None,
-    force_reload=False,
-    num_workers=0,
-    batch_size=100,
-):
+    dataset: VulnerabilityDataset,
+    output_path: Path,
+    gnn_model: Optional[GNNClassifier] = None,
+    force_reload: bool = False,
+    num_workers: int = 0,
+    batch_size: int = 100,
+) -> pd.DataFrame:
     """Generate experimental dataset."""
     if num_workers <= 0:
         num_workers = NUM_CORES
@@ -119,20 +120,25 @@ def generate_exp_dataset(
         sample_args[i : i + batch_size] for i in range(0, len(sample_args), batch_size)
     ]
 
-    all_results = []
+    all_results: List[Dict[str, Any]] = []
     mode = "GNN" if gnn_model else "Heuristic"
-    with Timer(f"Experimental {mode} generation ({num_workers} workers)", logger):
-        # Note: GNN model can't easily be pickled for multi-process if not careful
-        # But we can use threads or pass it if it's small.
-        # Actually, for GNNExplainer, process pool might be slow due to CUDA/pickling.
-        # If gnn_model is provided, we might want to use a smaller pool or serial for stability if needed.
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = {
-                executor.submit(process_batch_exp, batch, gnn_model): i
-                for i, batch in enumerate(batches)
-            }
-            for future in as_completed(futures):
-                all_results.extend(future.result())
+
+    # For GNN model, use serial processing to avoid pickle/CUDA issues
+    if gnn_model is not None:
+        logger.info(
+            f"Using serial processing for {mode} mode (GNN model pickle limitation)"
+        )
+        for batch in batches:
+            all_results.extend(process_batch_exp(batch, gnn_model))
+    else:
+        with Timer(f"Experimental {mode} generation ({num_workers} workers)", logger):
+            with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                futures = {
+                    executor.submit(process_batch_exp, batch): i
+                    for i, batch in enumerate(batches)
+                }
+                for future in as_completed(futures):
+                    all_results.extend(future.result())
 
     results_dict = {r["address"]: r for r in all_results}
     ordered_results = [
@@ -154,17 +160,106 @@ def generate_exp_dataset(
     ]
     df = df[[c for c in cols if c in df.columns]]
     df.to_csv(output_path, index=False)
-    logger.info(f"Saved {mode} dataset to {output_path}")
+    logger.info(f"Saved {mode} dataset to {output_path} ({len(df)} samples)")
     return df
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--force-reload", action="store_true")
-    parser.add_argument("--subset", type=int, default=None)
-    parser.add_argument("--use-gnn", action="store_true", help="Use GNN Explainer")
+def upload_optimized_to_huggingface(
+    train_heuristic_df: pd.DataFrame,
+    test_heuristic_df: pd.DataFrame,
+    train_gnn_df: Optional[pd.DataFrame] = None,
+    test_gnn_df: Optional[pd.DataFrame] = None,
+) -> None:
+    """
+    Upload optimized datasets to HuggingFace Hub.
+    If GNN version is not available, only uploads heuristic version.
+    """
+    from datasets import Dataset, DatasetDict
+
+    dataset_name = config.HUGGINGFACE_DATASET_NAME
+    if not dataset_name:
+        logger.warning("HUGGINGFACE_DATASET_NAME not set, skipping upload")
+        return
+
+    logger.info(f"Uploading optimized datasets to HuggingFace: {dataset_name}")
+
+    # Load environment variables for token
+    import os
+
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    hf_token = os.getenv("HUGGINGFACE_API_TOKEN")
+    if not hf_token:
+        logger.error("HUGGINGFACE_API_TOKEN not found in .env file")
+        return
+
+    # Create combined dataset with both versions
+    # Structure: train/test splits, each with heuristic and optional gnn columns
+    train_ds = Dataset.from_pandas(train_heuristic_df)
+    test_ds = Dataset.from_pandas(test_heuristic_df)
+
+    # Add GNN columns if available
+    if train_gnn_df is not None and test_gnn_df is not None:
+        logger.info("Including GNN Explainer version in dataset")
+        # Merge GNN columns into heuristic dataframe
+        # Rename GNN columns to have _gnn suffix
+        gnn_cols = [
+            "before_optimized_gnn",
+            "optimized_80p_gnn",
+            "optimized_50p_gnn",
+            "optimized_20p_gnn",
+        ]
+
+        for col, gnn_col in zip(
+            ["before_optimized", "optimized_80p", "optimized_50p", "optimized_20p"],
+            gnn_cols,
+        ):
+            if gnn_col in train_gnn_df.columns:
+                train_ds = train_ds.add_column(gnn_col, train_gnn_df[gnn_col].tolist())
+                test_ds = test_ds.add_column(gnn_col, test_gnn_df[gnn_col].tolist())
+
+    dataset_dict = DatasetDict(
+        {
+            "train": train_ds,
+            "test": test_ds,
+        }
+    )
+
+    logger.info(f"Train samples: {len(train_ds)}, Test samples: {len(test_ds)}")
+    logger.info(f"Features: {train_ds.column_names}")
+
+    # Upload to HuggingFace
+    dataset_dict.push_to_hub(
+        dataset_name,
+        token=hf_token,
+        private=False,
+    )
+
+    logger.info(
+        f"✅ Successfully uploaded to https://huggingface.co/datasets/{dataset_name}"
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate optimized datasets with 80/50/20% variants"
+    )
     parser.add_argument(
-        "--gnn-epochs", type=int, default=10, help="Epochs to train GNN"
+        "--force-reload", action="store_true", help="Force regeneration"
+    )
+    parser.add_argument("--subset", type=int, default=None, help="Use subset of data")
+    parser.add_argument(
+        "--use-gnn", action="store_true", help="Generate GNN Explainer version"
+    )
+    parser.add_argument(
+        "--gnn-epochs", type=int, default=10, help="Epochs to train GNN model"
+    )
+    parser.add_argument(
+        "--upload-to-hf",
+        action="store_true",
+        help="Upload to HuggingFace if USE_HUGGINGFACE is True",
     )
     args = parser.parse_args()
 
@@ -183,50 +278,82 @@ def main():
         test_dataset.asts = test_dataset.asts[: args.subset]
         test_dataset.labels = test_dataset.labels[: args.subset]
 
-    # Generate Heuristic Version
+    # Generate Heuristic Version (always)
     logger.info("\n>>> GENERATING HEURISTIC VERSION <<<")
-    generate_exp_dataset(
+    train_heuristic_path = config.OUTPUT_DIR / "train_optimized_heuristic.csv"
+    test_heuristic_path = config.OUTPUT_DIR / "test_optimized_heuristic.csv"
+
+    train_heuristic_df = generate_exp_dataset(
         train_dataset,
-        config.OUTPUT_DIR / "train_optimized_heuristic.csv",
+        train_heuristic_path,
         force_reload=args.force_reload,
     )
-    generate_exp_dataset(
+    test_heuristic_df = generate_exp_dataset(
         test_dataset,
-        config.OUTPUT_DIR / "test_optimized_heuristic.csv",
+        test_heuristic_path,
         force_reload=args.force_reload,
     )
 
-    # Generate GNN Version
+    # Generate GNN Version (optional)
+    train_gnn_df = None
+    test_gnn_df = None
+
     if args.use_gnn:
-        logger.info("\n>>> GENERATING GNN EXPLAINER VERSION <<<")
-        # 1. Process graphs for training
-        train_graphs = process_dataset_to_graphs(train_dataset)
-
-        # 2. Train/Load GNN
-        gnn_path = config.MODELS_DIR / "gnn_explainer_model.pth"
-        if gnn_path.exists() and not args.force_reload:
-            logger.info(f"Loading GNN model from {gnn_path}")
-            gnn_model = GNNClassifier(num_node_features=4, num_classes=5)
-            gnn_model.load_state_dict(torch.load(gnn_path, weights_only=True))
+        if not HAS_TORCH_GEOMETRIC:
+            logger.warning("torch-geometric not available, skipping GNN generation")
         else:
-            logger.info(f"Training GNN model for {args.gnn_epochs} epochs...")
-            gnn_model = train_gnn_model(train_graphs, epochs=args.gnn_epochs)
-            torch.save(gnn_model.state_dict(), gnn_path)
-            logger.info(f"Saved GNN model to {gnn_path}")
+            logger.info("\n>>> GENERATING GNN EXPLAINER VERSION <<<")
+            # 1. Process graphs for training
+            train_graphs = process_dataset_to_graphs(train_dataset)
 
-        # 3. Generate dataset
-        generate_exp_dataset(
-            train_dataset,
-            config.OUTPUT_DIR / "train_optimized_gnn.csv",
-            gnn_model=gnn_model,
-            force_reload=args.force_reload,
+            # 2. Train/Load GNN
+            gnn_path = config.MODELS_DIR / "gnn_explainer_model.pth"
+            gnn_model = None
+
+            if gnn_path.exists() and not args.force_reload:
+                logger.info(f"Loading GNN model from {gnn_path}")
+                gnn_model = GNNClassifier(num_node_features=4, num_classes=5)
+                gnn_model.load_state_dict(
+                    torch.load(gnn_path, weights_only=True, map_location="cpu")
+                )
+            else:
+                logger.info(f"Training GNN model for {args.gnn_epochs} epochs...")
+                gnn_model = train_gnn_model(train_graphs, epochs=args.gnn_epochs)
+                torch.save(gnn_model.state_dict(), gnn_path)
+                logger.info(f"Saved GNN model to {gnn_path}")
+
+            # 3. Generate dataset
+            train_gnn_path = config.OUTPUT_DIR / "train_optimized_gnn.csv"
+            test_gnn_path = config.OUTPUT_DIR / "test_optimized_gnn.csv"
+
+            train_gnn_df = generate_exp_dataset(
+                train_dataset,
+                train_gnn_path,
+                gnn_model=gnn_model,
+                force_reload=args.force_reload,
+            )
+            test_gnn_df = generate_exp_dataset(
+                test_dataset,
+                test_gnn_path,
+                gnn_model=gnn_model,
+                force_reload=args.force_reload,
+            )
+
+    # Upload to HuggingFace if configured
+    if config.USE_HUGGINGFACE and args.upload_to_hf:
+        logger.info("\n>>> UPLOADING TO HUGGINGFACE <<<")
+        upload_optimized_to_huggingface(
+            train_heuristic_df,
+            test_heuristic_df,
+            train_gnn_df,
+            test_gnn_df,
         )
-        generate_exp_dataset(
-            test_dataset,
-            config.OUTPUT_DIR / "test_optimized_gnn.csv",
-            gnn_model=gnn_model,
-            force_reload=args.force_reload,
-        )
+    elif config.USE_HUGGINGFACE:
+        logger.info("\n💡 To upload to HuggingFace, add --upload-to-hf flag")
+        logger.info(f"Or manually set USE_HUGGINGFACE=True in config.py")
+    else:
+        logger.info("\n💡 USE_HUGGINGFACE is False, skipping upload")
+        logger.info("Generated datasets saved locally in output/ directory")
 
 
 if __name__ == "__main__":
