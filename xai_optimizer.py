@@ -3,18 +3,20 @@ XAI Optimizer using GNN Explainer
 Identifies sensitive nodes and optimizes graphs for vulnerability detection
 """
 
+from typing import Dict, List, Optional, Tuple
+
+import networkx as nx
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import networkx as nx
-import numpy as np
-from typing import List, Dict, Tuple, Optional
 
 # Optional torch-geometric imports (for GNN Explainer)
 try:
     from torch_geometric.data import Data
+    from torch_geometric.explain import Explainer
+    from torch_geometric.explain import GNNExplainer as PyGGNNExplainer
     from torch_geometric.nn import GCNConv, global_mean_pool
-    from torch_geometric.explain import Explainer, GNNExplainer as PyGGNNExplainer
 
     HAS_TORCH_GEOMETRIC = True
 except ImportError:
@@ -24,19 +26,18 @@ except ImportError:
     global_mean_pool = None
 
 import config
+from graph_processor import CFGGraph, subgraph_from_nodes
 from utils import (
+    Timer,
+    compare_statistics,
+    compute_graph_statistics,
+    get_device,
     get_logger,
-    save_pickle,
     load_pickle,
     pickle_exists,
+    save_pickle,
     timeit,
-    Timer,
-    compute_graph_statistics,
-    compare_statistics,
-    get_device,
 )
-from graph_processor import CFGGraph, subgraph_from_nodes
-
 
 logger = get_logger(__name__)
 
@@ -51,7 +52,7 @@ class GNNClassifier(nn.Module):
     """
 
     def __init__(
-        self, num_node_features: int, hidden_channels: int = 64, num_classes: int = 4
+        self, num_node_features: int, hidden_channels: int = 64, num_classes: int = 5
     ):
         super(GNNClassifier, self).__init__()
 
@@ -83,6 +84,50 @@ class GNNClassifier(nn.Module):
         x = self.lin(x)
 
         return x
+
+
+def train_gnn_model(
+    graphs: List[CFGGraph], epochs: int = 50, lr: float = 0.01
+) -> GNNClassifier:
+    """Train the GNN model on the dataset for better node importance scores."""
+    from torch_geometric.loader import DataLoader
+
+    device = get_device()
+    num_labels = len(config.DATASET_COLUMNS["labels"])
+    model = GNNClassifier(num_node_features=4, num_classes=num_labels).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = torch.nn.BCEWithLogitsLoss()
+
+    # Convert graphs to PyG Data
+    pyg_data_list = []
+    for g in graphs:
+        if g and g.graph.number_of_nodes() > 0:
+            pyg_data_list.append(networkx_to_pyg(g.graph, g.labels))
+
+    if not pyg_data_list:
+        logger.warning("No valid graphs for GNN training")
+        return model
+
+    loader = DataLoader(pyg_data_list, batch_size=32, shuffle=True)
+
+    model.train()
+    for epoch in range(epochs):
+        total_loss = 0
+        for data in loader:
+            data = data.to(device)
+            optimizer.zero_grad()
+            out = model(data.x, data.edge_index, data.batch)
+            loss = criterion(out, data.y)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item() * data.num_graphs
+
+        if (epoch + 1) % 10 == 0:
+            logger.info(
+                f"GNN Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(pyg_data_list):.4f}"
+            )
+
+    return model
 
 
 # ============================================================================
@@ -418,9 +463,10 @@ def optimize_graphs(
 # ============================================================================
 if __name__ == "__main__":
     import argparse
-    from utils import setup_logging, set_seed
-    from data_loader import load_train_test_datasets, get_label_names
+
+    from data_loader import get_label_names, load_train_test_datasets
     from graph_processor import process_dataset_to_graphs
+    from utils import set_seed, setup_logging
 
     # Setup
     setup_logging()

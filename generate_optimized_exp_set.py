@@ -1,18 +1,20 @@
 """
 Generate Experimental Optimized Dataset (80/50/20% of baseline nodes)
-Handles the 80%, 50%, and 20% node optimization relative to the baseline nodes
-from generate_optimized_dataset.py.
+Handles both fast heuristic version and GNN Explainer version datasets.
 """
 
 import argparse
+import multiprocessing as mp
+import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+import torch
 
 import config
-from data_loader import load_train_test_datasets
+from data_loader import VulnerabilityDataset, load_train_test_datasets
 
 # Import general functions from the base script
 from generate_optimized_dataset import (
@@ -20,13 +22,21 @@ from generate_optimized_dataset import (
     compute_node_importance,
     graph_to_sequence_string,
 )
-from graph_processor import parse_cfg_json
+from graph_processor import parse_cfg_json, process_dataset_to_graphs
 from utils import Timer, get_logger, set_seed, setup_logging
+from xai_optimizer import (
+    GNNClassifier,
+    compute_node_importance_gnn,
+    networkx_to_pyg,
+    train_gnn_model,
+)
 
 logger = get_logger(__name__)
 
 
-def process_single_sample_exp(args: Tuple) -> Dict:
+def process_single_sample_exp(
+    args: Tuple, gnn_model: Optional[GNNClassifier] = None
+) -> Dict:
     """Process a single sample with baseline-relative optimization (80/50/20)."""
     idx, address, ast_json, labels = args
     row = {
@@ -39,51 +49,63 @@ def process_single_sample_exp(args: Tuple) -> Dict:
     }
 
     graph = parse_cfg_json(ast_json, address)
-    importance_scores = compute_node_importance(graph)
 
-    # 1. Get baseline sequence and nodes (max 512)
+    # 1. Compute importance scores
+    if gnn_model is not None:
+        # GNN Explainer path
+        pyg_data = networkx_to_pyg(graph, labels)
+        importance_array = compute_node_importance_gnn(pyg_data, gnn_model)
+        node_list = list(graph.nodes())
+        importance_scores = {
+            node_list[i]: float(importance_array[i]) for i in range(len(node_list))
+        }
+    else:
+        # Fast heuristic path
+        importance_scores = compute_node_importance(graph)
+
+    # 2. Get baseline sequence and nodes (max 512)
     row["before_optimized"], baseline_nodes = graph_to_sequence_string(
         graph, max_tokens=512, importance_scores=importance_scores
     )
 
-    # 2. Generate optimized versions relative to baseline
+    # 3. Generate optimized versions relative to baseline
     for keep_pct, name in [(0.80, "80p"), (0.50, "50p"), (0.20, "20p")]:
-        # Optimization is relative to the NODES in before_optimized
         num_to_keep = max(1, int(len(baseline_nodes) * keep_pct))
-
-        # Sort baseline nodes by importance to select the best ones
         sorted_baseline = sorted(
             baseline_nodes, key=lambda n: importance_scores.get(n, 0.5), reverse=True
         )
         important_nodes = sorted_baseline[:num_to_keep]
-
-        # Create optimized subgraph from these nodes
         opt_graph = graph.subgraph(important_nodes).copy()
 
-        # Generate sequence (no additional truncation needed as we limited nodes)
         opt_seq, _ = graph_to_sequence_string(
             opt_graph,
             max_tokens=None,
             importance_scores=importance_scores,
-            reference_graph=graph,  # Keep original traversal order
+            reference_graph=graph,
         )
         row[f"optimized_{name}"] = opt_seq
 
     return row
 
 
-def process_batch_exp(batch_args: List[Tuple]) -> List[Dict]:
-    """Process a batch of samples for the experimental set."""
-    return [process_single_sample_exp(args) for args in batch_args]
+def process_batch_exp(
+    batch_args: List[Tuple], gnn_model: Optional[GNNClassifier] = None
+) -> List[Dict]:
+    """Process a batch of samples."""
+    return [process_single_sample_exp(args, gnn_model) for args in batch_args]
 
 
 def generate_exp_dataset(
-    dataset, output_path, force_reload=False, num_workers=0, batch_size=100
+    dataset,
+    output_path,
+    gnn_model=None,
+    force_reload=False,
+    num_workers=0,
+    batch_size=100,
 ):
-    """Generate the experimental dataset (baseline + 80/50/20 columns)."""
+    """Generate experimental dataset."""
     if num_workers <= 0:
         num_workers = NUM_CORES
-
     output_path = Path(output_path)
     if not force_reload and output_path.exists():
         logger.info(f"Loading existing experimental dataset from {output_path}")
@@ -98,24 +120,26 @@ def generate_exp_dataset(
     ]
 
     all_results = []
-    with Timer(f"Experimental generation ({num_workers} workers)", logger):
+    mode = "GNN" if gnn_model else "Heuristic"
+    with Timer(f"Experimental {mode} generation ({num_workers} workers)", logger):
+        # Note: GNN model can't easily be pickled for multi-process if not careful
+        # But we can use threads or pass it if it's small.
+        # Actually, for GNNExplainer, process pool might be slow due to CUDA/pickling.
+        # If gnn_model is provided, we might want to use a smaller pool or serial for stability if needed.
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
             futures = {
-                executor.submit(process_batch_exp, batch): i
+                executor.submit(process_batch_exp, batch, gnn_model): i
                 for i, batch in enumerate(batches)
             }
             for future in as_completed(futures):
                 all_results.extend(future.result())
 
-    # Order results by dataset addresses
     results_dict = {r["address"]: r for r in all_results}
     ordered_results = [
         results_dict[addr] for addr in dataset.addresses if addr in results_dict
     ]
-
     df = pd.DataFrame(ordered_results)
 
-    # Column ordering
     cols = [
         "address",
         "before_optimized",
@@ -129,20 +153,19 @@ def generate_exp_dataset(
         "Reentrancy",
     ]
     df = df[[c for c in cols if c in df.columns]]
-
     df.to_csv(output_path, index=False)
-    logger.info(f"Saved experimental dataset to {output_path}")
+    logger.info(f"Saved {mode} dataset to {output_path}")
     return df
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate Experimental Optimized Datasets"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force-reload", action="store_true")
+    parser.add_argument("--subset", type=int, default=None)
+    parser.add_argument("--use-gnn", action="store_true", help="Use GNN Explainer")
     parser.add_argument(
-        "--force-reload", action="store_true", help="Force regeneration"
+        "--gnn-epochs", type=int, default=10, help="Epochs to train GNN"
     )
-    parser.add_argument("--subset", type=int, default=None, help="Use subset of data")
     args = parser.parse_args()
 
     setup_logging()
@@ -160,17 +183,50 @@ def main():
         test_dataset.asts = test_dataset.asts[: args.subset]
         test_dataset.labels = test_dataset.labels[: args.subset]
 
-    # Generate Train & Test Experimental Sets
+    # Generate Heuristic Version
+    logger.info("\n>>> GENERATING HEURISTIC VERSION <<<")
     generate_exp_dataset(
         train_dataset,
-        config.OUTPUT_DIR / "train_optimized_dataset.csv",
+        config.OUTPUT_DIR / "train_optimized_heuristic.csv",
         force_reload=args.force_reload,
     )
     generate_exp_dataset(
         test_dataset,
-        config.OUTPUT_DIR / "test_optimized_dataset.csv",
+        config.OUTPUT_DIR / "test_optimized_heuristic.csv",
         force_reload=args.force_reload,
     )
+
+    # Generate GNN Version
+    if args.use_gnn:
+        logger.info("\n>>> GENERATING GNN EXPLAINER VERSION <<<")
+        # 1. Process graphs for training
+        train_graphs = process_dataset_to_graphs(train_dataset)
+
+        # 2. Train/Load GNN
+        gnn_path = config.MODELS_DIR / "gnn_explainer_model.pth"
+        if gnn_path.exists() and not args.force_reload:
+            logger.info(f"Loading GNN model from {gnn_path}")
+            gnn_model = GNNClassifier(num_node_features=4, num_classes=5)
+            gnn_model.load_state_dict(torch.load(gnn_path, weights_only=True))
+        else:
+            logger.info(f"Training GNN model for {args.gnn_epochs} epochs...")
+            gnn_model = train_gnn_model(train_graphs, epochs=args.gnn_epochs)
+            torch.save(gnn_model.state_dict(), gnn_path)
+            logger.info(f"Saved GNN model to {gnn_path}")
+
+        # 3. Generate dataset
+        generate_exp_dataset(
+            train_dataset,
+            config.OUTPUT_DIR / "train_optimized_gnn.csv",
+            gnn_model=gnn_model,
+            force_reload=args.force_reload,
+        )
+        generate_exp_dataset(
+            test_dataset,
+            config.OUTPUT_DIR / "test_optimized_gnn.csv",
+            gnn_model=gnn_model,
+            force_reload=args.force_reload,
+        )
 
 
 if __name__ == "__main__":
