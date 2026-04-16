@@ -288,6 +288,9 @@ def main() -> None:
         Path("JakeClark/soliaudit-dasp-ast-sequence-heuristic")
         / "test_optimized_heuristic.csv"
     )
+    # Create directories if they don't exist
+    train_heuristic_path.parent.mkdir(parents=True, exist_ok=True)
+    test_heuristic_path.parent.mkdir(parents=True, exist_ok=True)
 
     train_heuristic_df = generate_exp_dataset(
         train_dataset,
@@ -337,6 +340,9 @@ def main() -> None:
                 Path("JakeClark/soliaudit-dasp-ast-sequence-gnn-explainer")
                 / "test_optimized_gnn.csv"
             )
+            # Create directories if they don't exist
+            train_gnn_path.parent.mkdir(parents=True, exist_ok=True)
+            test_gnn_path.parent.mkdir(parents=True, exist_ok=True)
 
             train_gnn_df = generate_exp_dataset(
                 train_dataset,

@@ -1,8 +1,7 @@
 Scripts to run Vast.ai instance
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/JakeClark-chan/smart_contract_detection_xAI.git
 cd smart_contract_detection_xAI
-uv pip install -r requirements.txt
-uv run generate_optimized_exp_set.py --force-reload --use-gnn --upload-to-hf
+uv pip install -r --no-upgrade requirements.txt
+/venv/main/bin/python generate_optimized_exp_set.py --force-reload --use-gnn --upload-to-hf
 ```
