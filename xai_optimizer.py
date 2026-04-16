@@ -266,6 +266,12 @@ def compute_node_importance_gnn(
         # Get node importance scores
         if hasattr(explanation, "node_mask"):
             node_importance = explanation.node_mask.detach().cpu().numpy()
+            # Handle case where node_mask might be 2D (node x 1) instead of 1D
+            if node_importance.ndim > 1:
+                # Take the first column if it's 2D, or flatten if needed
+                node_importance = node_importance.flatten()
+            # Ensure we have a 1D array
+            node_importance = node_importance.squeeze()
         else:
             # Fallback: use uniform importance
             node_importance = np.ones(pyg_data.x.size(0))

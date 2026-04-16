@@ -58,7 +58,12 @@ def process_single_sample_exp(
         importance_array = compute_node_importance_gnn(pyg_data, gnn_model)
         node_list = list(graph.nodes())
         importance_scores = {
-            node_list[i]: float(importance_array[i]) for i in range(len(node_list))
+            node_list[i]: float(
+                importance_array[i].item()
+                if hasattr(importance_array[i], "item")
+                else importance_array[i]
+            )
+            for i in range(len(node_list))
         }
     else:
         # Fast heuristic path
