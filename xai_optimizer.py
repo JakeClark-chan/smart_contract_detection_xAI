@@ -258,9 +258,9 @@ def compute_node_importance_gnn(
 
         # Generate explanation for the graph
         # Note: For explanation_type="model", target should not be provided
-        logger.info(
-            f"Running GNN Explainer for graph with {pyg_data.x.size(0)} nodes using {config.GNN_EXPLAINER_EPOCHS} epochs..."
-        )
+        # logger.info(
+        #     f"Running GNN Explainer for graph with {pyg_data.x.size(0)} nodes using {config.GNN_EXPLAINER_EPOCHS} epochs..."
+        # )
         explanation = explainer(
             pyg_data.x,
             pyg_data.edge_index,
@@ -279,9 +279,9 @@ def compute_node_importance_gnn(
             # Fallback: use uniform importance
             node_importance = np.ones(pyg_data.x.size(0))
 
-        logger.info(
-            f"GNN Explainer completed for graph with {pyg_data.x.size(0)} nodes"
-        )
+        # logger.info(
+        #     f"GNN Explainer completed for graph with {pyg_data.x.size(0)} nodes"
+        # )
         return node_importance
 
     except Exception as e:

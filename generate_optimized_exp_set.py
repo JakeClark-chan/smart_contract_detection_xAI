@@ -101,7 +101,13 @@ def process_batch_exp(
     batch_args: List[Tuple], gnn_model: Optional[GNNClassifier] = None
 ) -> List[Dict[str, Any]]:
     """Process a batch of samples."""
-    return [process_single_sample_exp(args, gnn_model) for args in batch_args]
+    if HAS_JOBLIB and gnn_model is not None:
+        # Use joblib for parallel processing of samples in batch
+        return Parallel(n_jobs=-1)(
+            delayed(process_single_sample_exp)(args, gnn_model) for args in batch_args
+        )
+    else:
+        return [process_single_sample_exp(args, gnn_model) for args in batch_args]
 
 
 def generate_exp_dataset(
@@ -131,7 +137,7 @@ def generate_exp_dataset(
     all_results: List[Dict[str, Any]] = []
     mode = "GNN" if gnn_model else "Heuristic"
 
-    # For GNN model, use serial processing to avoid pickle/CUDA issues
+    # For GNN model, use parallel processing when available
     if gnn_model is not None:
         logger.info(
             f"Using serial processing for {mode} mode (GNN model pickle limitation)"
