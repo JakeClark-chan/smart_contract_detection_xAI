@@ -230,15 +230,17 @@ def compute_node_importance_gnn(
 
     Args:
         pyg_data: PyTorch Geometric graph data
-        gnn_model: Trained GNN model
+        gnn_model: Trained GNN model (should already be on correct device)
         target_label_idx: Target label index for explanation
 
     Returns:
         Node importance scores (numpy array)
     """
-    device = get_device()
+    # Get current device from model parameters (should already be set by caller)
+    device = next(gnn_model.parameters()).device
+    logger.debug(f"GNN Explainer running on device: {device}")
+
     gnn_model.eval()
-    gnn_model.to(device)
     pyg_data = pyg_data.to(device)
 
     try:

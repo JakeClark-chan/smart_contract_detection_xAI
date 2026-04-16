@@ -23,7 +23,7 @@ from generate_optimized_dataset import (
     graph_to_sequence_string,
 )
 from graph_processor import parse_cfg_json, process_dataset_to_graphs
-from utils import Timer, get_logger, set_seed, setup_logging
+from utils import Timer, get_device, get_logger, set_seed, setup_logging
 from xai_optimizer import (
     HAS_TORCH_GEOMETRIC,
     GNNClassifier,
@@ -332,17 +332,24 @@ def main() -> None:
             gnn_path = config.MODELS_DIR / "gnn_explainer_model.pth"
             gnn_model = None
 
+            device = get_device()
+            logger.info(f"Using device: {device}")
+
             if gnn_path.exists() and not args.force_reload:
                 logger.info(f"Loading GNN model from {gnn_path}")
                 gnn_model = GNNClassifier(num_node_features=4, num_classes=5)
                 gnn_model.load_state_dict(
-                    torch.load(gnn_path, weights_only=True, map_location="cpu")
+                    torch.load(gnn_path, weights_only=True, map_location=str(device))
                 )
+                gnn_model.to(device)
+                logger.info(f"GNN model loaded and moved to {device}")
             else:
                 logger.info(f"Training GNN model for {args.gnn_epochs} epochs...")
                 gnn_model = train_gnn_model(train_graphs, epochs=args.gnn_epochs)
+                gnn_model.to(device)
                 torch.save(gnn_model.state_dict(), gnn_path)
                 logger.info(f"Saved GNN model to {gnn_path}")
+                logger.info(f"GNN model moved to {device}")
 
             # 3. Generate dataset
             train_gnn_path = (
