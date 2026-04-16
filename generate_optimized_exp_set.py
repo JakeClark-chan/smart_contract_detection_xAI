@@ -280,8 +280,14 @@ def main() -> None:
 
     # Generate Heuristic Version (always)
     logger.info("\n>>> GENERATING HEURISTIC VERSION <<<")
-    train_heuristic_path = config.OUTPUT_DIR / "train_optimized_heuristic.csv"
-    test_heuristic_path = config.OUTPUT_DIR / "test_optimized_heuristic.csv"
+    train_heuristic_path = (
+        Path("JakeClark/soliaudit-dasp-ast-sequence-heuristic")
+        / "train_optimized_heuristic.csv"
+    )
+    test_heuristic_path = (
+        Path("JakeClark/soliaudit-dasp-ast-sequence-heuristic")
+        / "test_optimized_heuristic.csv"
+    )
 
     train_heuristic_df = generate_exp_dataset(
         train_dataset,
@@ -323,8 +329,14 @@ def main() -> None:
                 logger.info(f"Saved GNN model to {gnn_path}")
 
             # 3. Generate dataset
-            train_gnn_path = config.OUTPUT_DIR / "train_optimized_gnn.csv"
-            test_gnn_path = config.OUTPUT_DIR / "test_optimized_gnn.csv"
+            train_gnn_path = (
+                Path("JakeClark/soliaudit-dasp-ast-sequence-gnn-explainer")
+                / "train_optimized_gnn.csv"
+            )
+            test_gnn_path = (
+                Path("JakeClark/soliaudit-dasp-ast-sequence-gnn-explainer")
+                / "test_optimized_gnn.csv"
+            )
 
             train_gnn_df = generate_exp_dataset(
                 train_dataset,
