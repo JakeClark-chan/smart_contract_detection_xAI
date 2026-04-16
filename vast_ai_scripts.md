@@ -1,5 +1,6 @@
 Scripts to run Vast.ai instance
 ```bash
+touch ~/.no_auto_tmux # then reconnect
 git clone https://github.com/JakeClark-chan/smart_contract_detection_xAI.git
 cd smart_contract_detection_xAI
 uv pip install -r --no-upgrade requirements.txt

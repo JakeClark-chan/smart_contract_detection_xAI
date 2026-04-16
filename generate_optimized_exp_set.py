@@ -55,6 +55,9 @@ def process_single_sample_exp(
     if gnn_model is not None:
         # GNN Explainer path
         pyg_data = networkx_to_pyg(graph, labels)
+        logger.debug(
+            f"Computing GNN importance for graph {address} with {pyg_data.x.size(0)} nodes"
+        )
         importance_array = compute_node_importance_gnn(pyg_data, gnn_model)
         node_list = list(graph.nodes())
         importance_scores = {
@@ -133,8 +136,13 @@ def generate_exp_dataset(
         logger.info(
             f"Using serial processing for {mode} mode (GNN model pickle limitation)"
         )
-        for batch in batches:
-            all_results.extend(process_batch_exp(batch, gnn_model))
+        for i, batch in enumerate(batches):
+            logger.info(
+                f"Processing batch {i + 1}/{len(batches)} for GNN explainer ({len(batch)} samples)"
+            )
+            batch_results = process_batch_exp(batch, gnn_model)
+            all_results.extend(batch_results)
+            logger.info(f"Completed batch {i + 1}/{len(batches)} for GNN explainer")
     else:
         with Timer(f"Experimental {mode} generation ({num_workers} workers)", logger):
             with ProcessPoolExecutor(max_workers=num_workers) as executor:
