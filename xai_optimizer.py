@@ -190,6 +190,42 @@ def networkx_to_pyg(nx_graph: nx.DiGraph, labels: np.ndarray = None) -> Data:
 # ============================================================================
 # NODE IMPORTANCE COMPUTATION
 # ============================================================================
+def compute_node_importance_gcn(
+    pyg_data: Data, gnn_model: GNNClassifier
+) -> np.ndarray:
+    """
+    Compute node importance using GCN forward-pass embeddings.
+
+    Runs only the two convolutional layers (no explainer loop) and uses the
+    L2-norm of each node embedding as its importance score.  This is
+    significantly faster than the full GNN Explainer while still leveraging
+    learned graph structure.
+
+    Args:
+        pyg_data: PyTorch Geometric graph data
+        gnn_model: Trained GNNClassifier (should already be on the correct device)
+
+    Returns:
+        Node importance scores as a 1-D numpy array (length = number of nodes)
+    """
+    device = next(gnn_model.parameters()).device
+    gnn_model.eval()
+    pyg_data = pyg_data.to(device)
+
+    with torch.no_grad():
+        x = pyg_data.x
+        edge_index = pyg_data.edge_index
+
+        # Run through conv layers only (no pooling / classification head)
+        x = gnn_model.conv1(x, edge_index)
+        x = F.relu(x)
+        x = gnn_model.conv2(x, edge_index)  # shape: [num_nodes, hidden_channels]
+
+    # Use L2-norm of each node embedding as importance
+    node_importance = x.norm(dim=1).cpu().numpy()  # shape: [num_nodes]
+    return node_importance
+
+
 def compute_node_importance_simple(nx_graph: nx.DiGraph) -> Dict[Any, float]:
     """
     Compute node importance using fast graph-based heuristics.

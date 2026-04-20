@@ -29,6 +29,7 @@ from utils import Timer, get_device, get_logger, set_seed, setup_logging
 from xai_optimizer import (
     HAS_TORCH_GEOMETRIC,
     GNNClassifier,
+    compute_node_importance_gcn,
     compute_node_importance_gnn,
     networkx_to_pyg,
     train_gnn_model,
@@ -97,6 +98,126 @@ def process_single_sample_exp(
         row[f"optimized_{name}"] = opt_seq
 
     return row
+
+
+def process_single_sample_exp_gcn(
+    args: Tuple, gnn_model: GNNClassifier
+) -> Dict[str, Any]:
+    """
+    Process a single sample using GCN forward-pass embeddings (no GNN Explainer
+    loop) for node importance scoring.
+    """
+    idx, address, ast_json, labels = args
+    row: Dict[str, Any] = {
+        "address": address,
+        "Arithmetic": int(labels[0]),
+        "Unchecked Return Values For Low Level Calls": int(labels[1]),
+        "Denial of Service": int(labels[2]),
+        "Time manipulation": int(labels[3]),
+        "Reentrancy": int(labels[4]),
+    }
+
+    graph = parse_cfg_json(ast_json, address)
+
+    # Compute importance via GCN embedding norms (fast, no iterative explainer)
+    pyg_data = networkx_to_pyg(graph, labels)
+    importance_array = compute_node_importance_gcn(pyg_data, gnn_model)
+    node_list = list(graph.nodes())
+    importance_scores = {
+        node_list[i]: float(
+            importance_array[i].item()
+            if hasattr(importance_array[i], "item")
+            else importance_array[i]
+        )
+        for i in range(len(node_list))
+    }
+
+    # Baseline sequence (max 512 tokens)
+    row["before_optimized"], baseline_nodes = graph_to_sequence_string(
+        graph, max_tokens=512, importance_scores=importance_scores
+    )
+
+    # Optimized variants relative to baseline
+    for keep_pct, name in [(0.80, "80p"), (0.50, "50p"), (0.20, "20p")]:
+        num_to_keep = max(1, int(len(baseline_nodes) * keep_pct))
+        sorted_baseline = sorted(
+            baseline_nodes, key=lambda n: importance_scores.get(n, 0.5), reverse=True
+        )
+        important_nodes = sorted_baseline[:num_to_keep]
+        opt_graph = graph.subgraph(important_nodes).copy()
+
+        opt_seq, _ = graph_to_sequence_string(
+            opt_graph,
+            max_tokens=None,
+            importance_scores=importance_scores,
+            reference_graph=graph,
+        )
+        row[f"optimized_{name}"] = opt_seq
+
+    return row
+
+
+def process_batch_exp_gcn(
+    batch_args: List[Tuple], gnn_model: GNNClassifier
+) -> List[Dict[str, Any]]:
+    """Process a batch of samples using the GCN path."""
+    return [process_single_sample_exp_gcn(args, gnn_model) for args in batch_args]
+
+
+def generate_exp_dataset_gcn(
+    dataset: VulnerabilityDataset,
+    output_path: Path,
+    gnn_model: GNNClassifier,
+    force_reload: bool = False,
+    batch_size: int = 100,
+) -> pd.DataFrame:
+    """
+    Generate experimental dataset using GCN embedding-based node importance.
+    Always runs serially (model cannot be pickled across processes).
+    """
+    output_path = Path(output_path)
+    if not force_reload and output_path.exists():
+        logger.info(f"Loading existing GCN dataset from {output_path}")
+        return pd.read_csv(output_path)
+
+    sample_args = [
+        (i, dataset.addresses[i], dataset.asts[i], dataset.labels[i])
+        for i in range(len(dataset))
+    ]
+    batches = [
+        sample_args[i : i + batch_size] for i in range(0, len(sample_args), batch_size)
+    ]
+
+    all_results: List[Dict[str, Any]] = []
+    for i, batch in enumerate(batches):
+        logger.info(
+            f"Processing batch {i + 1}/{len(batches)} for GCN ({len(batch)} samples)"
+        )
+        batch_results = process_batch_exp_gcn(batch, gnn_model)
+        all_results.extend(batch_results)
+
+    results_dict = {r["address"]: r for r in all_results}
+    ordered_results = [
+        results_dict[addr] for addr in dataset.addresses if addr in results_dict
+    ]
+    df = pd.DataFrame(ordered_results)
+
+    cols = [
+        "address",
+        "before_optimized",
+        "optimized_80p",
+        "optimized_50p",
+        "optimized_20p",
+        "Arithmetic",
+        "Unchecked Return Values For Low Level Calls",
+        "Denial of Service",
+        "Time manipulation",
+        "Reentrancy",
+    ]
+    df = df[[c for c in cols if c in df.columns]]
+    df.to_csv(output_path, index=False)
+    logger.info(f"Saved GCN dataset to {output_path} ({len(df)} samples)")
+    return df
 
 
 def process_batch_exp(
@@ -184,10 +305,12 @@ def upload_optimized_to_huggingface(
     test_heuristic_df: pd.DataFrame,
     train_gnn_df: Optional[pd.DataFrame] = None,
     test_gnn_df: Optional[pd.DataFrame] = None,
+    train_gcn_df: Optional[pd.DataFrame] = None,
+    test_gcn_df: Optional[pd.DataFrame] = None,
 ) -> None:
     """
     Upload optimized datasets to HuggingFace Hub.
-    If GNN version is not available, only uploads heuristic version.
+    Supports heuristic, GNN Explainer, and GCN versions.
     """
     from datasets import Dataset, DatasetDict
 
@@ -215,25 +338,39 @@ def upload_optimized_to_huggingface(
     train_ds = Dataset.from_pandas(train_heuristic_df)
     test_ds = Dataset.from_pandas(test_heuristic_df)
 
-    # Add GNN columns if available
+    # Add GNN Explainer columns if available
     if train_gnn_df is not None and test_gnn_df is not None:
         logger.info("Including GNN Explainer version in dataset")
-        # Merge GNN columns into heuristic dataframe
-        # Rename GNN columns to have _gnn suffix
         gnn_cols = [
             "before_optimized_gnn",
             "optimized_80p_gnn",
             "optimized_50p_gnn",
             "optimized_20p_gnn",
         ]
-
         for col, gnn_col in zip(
             ["before_optimized", "optimized_80p", "optimized_50p", "optimized_20p"],
             gnn_cols,
         ):
-            if gnn_col in train_gnn_df.columns:
-                train_ds = train_ds.add_column(gnn_col, train_gnn_df[gnn_col].tolist())
-                test_ds = test_ds.add_column(gnn_col, test_gnn_df[gnn_col].tolist())
+            if col in train_gnn_df.columns:
+                train_ds = train_ds.add_column(gnn_col, train_gnn_df[col].tolist())
+                test_ds = test_ds.add_column(gnn_col, test_gnn_df[col].tolist())
+
+    # Add GCN columns if available
+    if train_gcn_df is not None and test_gcn_df is not None:
+        logger.info("Including GCN version in dataset")
+        gcn_cols = [
+            "before_optimized_gcn",
+            "optimized_80p_gcn",
+            "optimized_50p_gcn",
+            "optimized_20p_gcn",
+        ]
+        for col, gcn_col in zip(
+            ["before_optimized", "optimized_80p", "optimized_50p", "optimized_20p"],
+            gcn_cols,
+        ):
+            if col in train_gcn_df.columns:
+                train_ds = train_ds.add_column(gcn_col, train_gcn_df[col].tolist())
+                test_ds = test_ds.add_column(gcn_col, test_gcn_df[col].tolist())
 
     dataset_dict = DatasetDict(
         {
@@ -267,6 +404,11 @@ def main() -> None:
     parser.add_argument("--subset", type=int, default=None, help="Use subset of data")
     parser.add_argument(
         "--use-gnn", action="store_true", help="Generate GNN Explainer version"
+    )
+    parser.add_argument(
+        "--use-gcn",
+        action="store_true",
+        help="Generate GCN embedding-based version (AST + GCN)",
     )
     parser.add_argument(
         "--gnn-epochs", type=int, default=10, help="Epochs to train GNN model"
@@ -379,6 +521,64 @@ def main() -> None:
                 force_reload=args.force_reload,
             )
 
+    # Generate GCN Version (optional, AST + GCN)
+    train_gcn_df = None
+    test_gcn_df = None
+
+    if args.use_gcn:
+        if not HAS_TORCH_GEOMETRIC:
+            logger.warning("torch-geometric not available, skipping GCN generation")
+        else:
+            logger.info("\n>>> GENERATING AST + GCN VERSION <<<")
+            # Reuse the same GNN model (train if not already trained / loaded)
+            gcn_model = None
+            gnn_path = config.MODELS_DIR / "gnn_explainer_model.pth"
+
+            device = get_device()
+
+            if gnn_path.exists() and not args.force_reload:
+                logger.info(f"Loading GCN/GNN model from {gnn_path}")
+                gcn_model = GNNClassifier(num_node_features=4, num_classes=5)
+                gcn_model.load_state_dict(
+                    torch.load(gnn_path, weights_only=True, map_location=str(device))
+                )
+                gcn_model.to(device)
+                logger.info(f"GCN model loaded and moved to {device}")
+            else:
+                logger.info(
+                    f"Training GCN/GNN model for {args.gnn_epochs} epochs..."
+                )
+                train_graphs = process_dataset_to_graphs(train_dataset)
+                gcn_model = train_gnn_model(
+                    train_graphs, epochs=args.gnn_epochs
+                )
+                gcn_model.to(device)
+                torch.save(gcn_model.state_dict(), gnn_path)
+                logger.info(f"Saved GCN/GNN model to {gnn_path}")
+
+            train_gcn_path = (
+                Path("JakeClark/soliaudit-dasp-sequence-gcn-explainer")
+                / "train_optimized_gcn.csv"
+            )
+            test_gcn_path = (
+                Path("JakeClark/soliaudit-dasp-sequence-gcn-explainer")
+                / "test_optimized_gcn.csv"
+            )
+            train_gcn_path.parent.mkdir(parents=True, exist_ok=True)
+            test_gcn_path.parent.mkdir(parents=True, exist_ok=True)
+
+            train_gcn_df = generate_exp_dataset_gcn(
+                train_dataset,
+                train_gcn_path,
+                gnn_model=gcn_model,
+                force_reload=args.force_reload,
+            )
+            test_gcn_df = generate_exp_dataset_gcn(
+                test_dataset,
+                test_gcn_path,
+                gnn_model=gcn_model,
+                force_reload=args.force_reload,
+            )
 
     # Upload to HuggingFace if configured
     if config.USE_HUGGINGFACE and args.upload_to_hf:
@@ -388,6 +588,8 @@ def main() -> None:
             test_heuristic_df,
             train_gnn_df,
             test_gnn_df,
+            train_gcn_df,
+            test_gcn_df,
         )
     elif config.USE_HUGGINGFACE:
         logger.info("\n💡 To upload to HuggingFace, add --upload-to-hf flag")

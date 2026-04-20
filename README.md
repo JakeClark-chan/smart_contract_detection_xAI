@@ -418,3 +418,32 @@ Bruh
 ## Contact
 
 For questions or issues, please open an issue on the repository or contact nope@nope.com.
+
+---
+
+## Updates
+Changes made
+xai_optimizer.py
+Added compute_node_importance_gcn(pyg_data, gnn_model) — a new function that runs only the two GCN convolutional layers in a torch.no_grad() forward pass and uses the L2-norm of each node's embedding as its importance score. This is:
+Faster than GNN Explainer (no iterative optimization loop)
+More structure-aware than the degree-based heuristic
+Fully separate from the existing compute_node_importance_gnn (GNN Explainer) and compute_node_importance_simple (heuristic)
+generate_optimized_exp_set.py
+Imported compute_node_importance_gcn from xai_optimizer
+Added process_single_sample_exp_gcn — processes one sample using GCN embedding norms for importance scoring
+Added process_batch_exp_gcn — batch wrapper for the GCN path
+Added generate_exp_dataset_gcn — full dataset generator, always serial (model can't be pickled), saves to JakeClark/soliaudit-dasp-sequence-gcn-explainer/{train,test}_optimized_gcn.csv
+Added --use-gcn CLI flag to main()
+Added GCN generation block in main() — shares the same trained GNN model weights with the GNN Explainer path (no extra training if model already saved)
+Updated upload_optimized_to_huggingface to accept train_gcn_df / test_gcn_df and merge them as *_gcn suffixed columns
+Usage
+```bash
+# GCN only
+python generate_optimized_exp_set.py --use-gcn
+# All three generators
+python generate_optimized_exp_set.py --use-gnn --use-gcn
+# With upload
+python generate_optimized_exp_set.py --use-gcn --upload-to-hf
+# Force retrain model
+python generate_optimized_exp_set.py --use-gcn --force-reload --gnn-epochs 20
+```
