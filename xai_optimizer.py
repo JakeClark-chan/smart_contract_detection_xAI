@@ -93,6 +93,7 @@ def train_gnn_model(
     from torch_geometric.loader import DataLoader
 
     device = get_device()
+    logger.info(f"Training GNN model on device: {device}")
     num_labels = len(config.DATASET_COLUMNS["labels"])
     model = GNNClassifier(num_node_features=4, num_classes=num_labels).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -228,6 +229,10 @@ def compute_node_importance_gnn(
     """
     Compute node importance using GNN Explainer
 
+    Note: GNN Explainer performs iterative optimization which may result in lower GPU utilization
+    (3-5%) compared to standard model inference, as the algorithm has CPU bottlenecks.
+    This is expected behavior and the computation is still GPU-accelerated.
+
     Args:
         pyg_data: PyTorch Geometric graph data
         gnn_model: Trained GNN model (should already be on correct device)
@@ -238,7 +243,6 @@ def compute_node_importance_gnn(
     """
     # Get current device from model parameters (should already be set by caller)
     device = next(gnn_model.parameters()).device
-    logger.debug(f"GNN Explainer running on device: {device}")
 
     gnn_model.eval()
     pyg_data = pyg_data.to(device)
@@ -260,9 +264,6 @@ def compute_node_importance_gnn(
 
         # Generate explanation for the graph
         # Note: For explanation_type="model", target should not be provided
-        # logger.info(
-        #     f"Running GNN Explainer for graph with {pyg_data.x.size(0)} nodes using {config.GNN_EXPLAINER_EPOCHS} epochs..."
-        # )
         explanation = explainer(
             pyg_data.x,
             pyg_data.edge_index,
@@ -280,10 +281,6 @@ def compute_node_importance_gnn(
         else:
             # Fallback: use uniform importance
             node_importance = np.ones(pyg_data.x.size(0))
-
-        # logger.info(
-        #     f"GNN Explainer completed for graph with {pyg_data.x.size(0)} nodes"
-        # )
         return node_importance
 
     except Exception as e:

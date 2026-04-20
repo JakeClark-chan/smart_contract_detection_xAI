@@ -19,8 +19,10 @@ logs/
 NCKHSV*/
 
 # Dataset
-*.csv
+soliaudit_*
 
 # Output folder
 kaggle_output/
 uv.lock
+
+JakeClark/

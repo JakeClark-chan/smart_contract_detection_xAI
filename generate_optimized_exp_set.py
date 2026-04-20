@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
 
 import config
 from data_loader import VulnerabilityDataset, load_train_test_datasets
@@ -294,11 +296,11 @@ def main() -> None:
     # Generate Heuristic Version (always)
     logger.info("\n>>> GENERATING HEURISTIC VERSION <<<")
     train_heuristic_path = (
-        Path("JakeClark/soliaudit-dasp-ast-sequence-heuristic")
+        Path("JakeClark/soliaudit-dasp-sequence-fast-heuristic")
         / "train_optimized_heuristic.csv"
     )
     test_heuristic_path = (
-        Path("JakeClark/soliaudit-dasp-ast-sequence-heuristic")
+        Path("JakeClark/soliaudit-dasp-sequence-fast-heuristic")
         / "test_optimized_heuristic.csv"
     )
     # Create directories if they don't exist
@@ -353,11 +355,11 @@ def main() -> None:
 
             # 3. Generate dataset
             train_gnn_path = (
-                Path("JakeClark/soliaudit-dasp-ast-sequence-gnn-explainer")
+                Path("JakeClark/soliaudit-dasp-sequence-gnn-explainer")
                 / "train_optimized_gnn.csv"
             )
             test_gnn_path = (
-                Path("JakeClark/soliaudit-dasp-ast-sequence-gnn-explainer")
+                Path("JakeClark/soliaudit-dasp-sequence-gnn-explainer")
                 / "test_optimized_gnn.csv"
             )
             # Create directories if they don't exist
@@ -376,6 +378,7 @@ def main() -> None:
                 gnn_model=gnn_model,
                 force_reload=args.force_reload,
             )
+
 
     # Upload to HuggingFace if configured
     if config.USE_HUGGINGFACE and args.upload_to_hf:

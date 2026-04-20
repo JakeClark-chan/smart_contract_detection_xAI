@@ -88,7 +88,7 @@ CURRENT_MODEL_NAME = AVAILABLE_MODELS[DEFAULT_MODEL]
 # XAI & GRAPH OPTIMIZATION CONFIGURATION
 # ============================================================================
 # GNN Explainer settings
-GNN_EXPLAINER_EPOCHS = 20
+GNN_EXPLAINER_EPOCHS = 100
 SHAP_THRESHOLD = 0.5  # Node importance threshold (top nodes to keep)
 TOP_NODES_PERCENTAGE = 0.2  # Alternative: keep top 20% of nodes
 
