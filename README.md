@@ -447,3 +447,45 @@ python generate_optimized_exp_set.py --use-gcn --upload-to-hf
 # Force retrain model
 python generate_optimized_exp_set.py --use-gcn --force-reload --gnn-epochs 20
 ```
+
+What was added
+xai_optimizer.py — compute_node_importance_gnn_no_explainer()
+Uses gradient × input saliency through the full GNN (all 3 conv layers + pool + linear head):
+
+Clones node features and enables requires_grad
+Runs the complete forward pass
+Backpropagates the sum of output logits
+Returns ‖(∂L/∂x) ⊙ x‖₂ per node as importance
+generate_optimized_exp_set.py — new functions & CLI
+New function	Purpose
+process_single_sample_exp_gnn_no_explainer	Single-sample GNN-saliency processor
+process_batch_exp_gnn_no_explainer	Batch wrapper
+generate_exp_dataset_gnn_no_explainer	Full dataset generator → JakeClark/soliaudit-dasp-sequence-gnn-no-explainer/
+HF upload extended with *_gnn_ne column suffix. Two new CLI flags added.
+
+Comparison of all 4 node importance methods
+Method	Flag	Technique	Speed
+Heuristic	(always)	Degree-based formula	⚡ Fastest
+AST + GCN	--use-gcn	conv1+conv2 forward, embedding L2-norm	🚀 Fast
+AST + GNN (no explainer)	--use-gnn-no-explainer	Full GNN forward + gradient saliency	🏃 Medium
+GNN Explainer	--use-gnn	Iterative PyG mask optimisation	🐢 Slowest
+Commands
+Force retrain the shared GNN/GCN model and regenerate both sequences:
+
+bash
+python generate_optimized_exp_set.py \
+    --use-gcn \
+    --use-gnn-no-explainer \
+    --retrain-model \
+    --gnn-epochs 50
+--retrain-model deletes models/gnn_explainer_model.pth so the first active generator retrains it fresh (all three model-based methods share the same checkpoint).
+
+Run all four generators together with retraining:
+
+bash
+python generate_optimized_exp_set.py \
+    --use-gnn \
+    --use-gcn \
+    --use-gnn-no-explainer \
+    --retrain-model \
+    --gnn-epochs 50

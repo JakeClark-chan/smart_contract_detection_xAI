@@ -226,6 +226,62 @@ def compute_node_importance_gcn(
     return node_importance
 
 
+def compute_node_importance_gnn_no_explainer(
+    pyg_data: Data, gnn_model: GNNClassifier
+) -> np.ndarray:
+    """
+    Compute node importance using gradient saliency through the full GNN.
+
+    Enables gradients on the node feature matrix, runs the complete forward
+    pass (conv1 → conv2 → conv3 → pool → linear), sums the output logits,
+    and backpropagates.  The element-wise product of the gradient and the
+    input features (grad × input) is used as a saliency map; the L2-norm
+    per node gives the final importance score.
+
+    This uses the full three-layer GNN and the classification head, making
+    it strictly different from:
+    - GCN path  : only conv1+conv2, embedding norm, no gradients
+    - GNN Explainer : iterative PyG mask-optimisation loop
+
+    Args:
+        pyg_data: PyTorch Geometric graph data
+        gnn_model: Trained GNNClassifier (should already be on the correct device)
+
+    Returns:
+        Node importance scores as a 1-D numpy array (length = number of nodes)
+    """
+    device = next(gnn_model.parameters()).device
+    gnn_model.eval()
+    pyg_data = pyg_data.to(device)
+
+    # Clone features and enable gradient tracking
+    x = pyg_data.x.clone().detach().requires_grad_(True)
+    edge_index = pyg_data.edge_index
+
+    try:
+        # Full forward pass through all layers
+        out = gnn_model(x, edge_index)  # shape: [1, num_classes]
+
+        # Scalar loss: sum of all output logits (captures all class signals)
+        scalar = out.sum()
+        scalar.backward()
+
+        if x.grad is not None:
+            # Gradient × input saliency, then L2-norm per node
+            saliency = (x.grad * x).norm(dim=1)  # shape: [num_nodes]
+            node_importance = saliency.detach().cpu().numpy()
+        else:
+            node_importance = np.ones(x.size(0))
+
+    except Exception as e:
+        logger.warning(
+            f"GNN saliency computation failed: {e}. Using uniform importance."
+        )
+        node_importance = np.ones(pyg_data.x.size(0))
+
+    return node_importance
+
+
 def compute_node_importance_simple(nx_graph: nx.DiGraph) -> Dict[Any, float]:
     """
     Compute node importance using fast graph-based heuristics.

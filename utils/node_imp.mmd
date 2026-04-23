@@ -1,0 +1,13 @@
+graph LR
+    subgraph "Kịch bản 1: GNN Gradient Saliency"
+        A1["Full Forward<br/>(3 conv + pool + linear)"] --> B1["Backprop"]
+        B1 --> C1["grad × input → L2-norm"]
+    end
+    subgraph "Kịch bản 2: GNN Explainer"
+        A2["Learnable Masks<br/>(node + edge)"] --> B2["100 epochs<br/>optimization"]
+        B2 --> C2["Optimized<br/>node_mask values"]
+    end
+    subgraph "Kịch bản 3: GCN Embedding"
+        A3["Partial Forward<br/>(conv1 + conv2 only)"] --> B3["No gradient"]
+        B3 --> C3["Embedding → L2-norm"]
+    end

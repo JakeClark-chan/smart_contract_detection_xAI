@@ -1,0 +1,160 @@
+================================================================================
+STEPS TO FIX: JakeClark/soliaudit-dasp-sequence-gnn-explainer
+================================================================================
+
+PROBLEM:
+  The HuggingFace dataset shows error:
+  "The dataset viewer is not available because its heuristics could not detect
+   any supported data files."
+
+SOLUTION:
+  Upload the GNN Explainer dataset in the correct Parquet format.
+
+================================================================================
+STEP 1: PREPARE YOUR ENVIRONMENT
+================================================================================
+
+1a. Create a .env file in the project root:
+    cd smart_contract_detection_xAI
+    echo "HUGGINGFACE_API_TOKEN=hf_your_token_here" > .env
+
+1b. Get your HuggingFace token:
+    - Go to: https://huggingface.co/settings/tokens
+    - Create a new token
+    - Copy the token
+    - Paste into .env file
+
+1c. Replace "hf_your_token_here" with your actual token and save
+
+
+================================================================================
+STEP 2: CHOOSE YOUR APPROACH
+================================================================================
+
+APPROACH A: Generate AND Upload (Recommended)
+  Time: 1-2 hours
+  Command: python generate_optimized_exp_set.py --use-gnn --upload-to-hf
+
+  APPROACH B: Upload Existing CSV Files Only
+  Time: 5-10 minutes
+  Command: python upload_gnn_explainer_to_hf.py
+  Prerequisites: CSV files must already exist in JakeClark/soliaudit-dasp-sequence-gnn-explainer/
+
+
+================================================================================
+STEP 3A: GENERATE AND UPLOAD (If using Approach A)
+================================================================================
+
+Run this command:
+  python generate_optimized_exp_set.py --use-gnn --upload-to-hf
+
+Wait for completion. The script will:
+  1. Train/load a GNN model
+  2. Process all samples
+  3. Generate CSV files
+  4. Upload to HuggingFace automatically
+
+Expected output at end:
+  ✅ Successfully uploaded to https://huggingface.co/datasets/JakeClark/soliaudit-dasp-sequence-gnn-explainer
+
+
+================================================================================
+STEP 3B: UPLOAD EXISTING CSV FILES (If using Approach B)
+================================================================================
+
+Run this command:
+  python upload_gnn_explainer_to_hf.py
+
+The script will:
+  1. Check that CSV files exist
+  2. Read and validate the data
+  3. Upload to HuggingFace
+
+Expected output:
+  ======================================================================
+  ✅ Upload Complete!
+  ======================================================================
+  Dataset URL:
+    https://huggingface.co/datasets/JakeClark/soliaudit-dasp-sequence-gnn-explainer
+
+
+================================================================================
+STEP 4: VERIFY THE FIX
+================================================================================
+
+4a. Wait 5-10 minutes for HuggingFace to process
+
+4b. Visit the repository:
+    https://huggingface.co/datasets/JakeClark/soliaudit-dasp-sequence-gnn-explainer
+
+4c. Check for:
+    ✅ Files showing: train-00000-of-00001.parquet and test-00000-of-00001.parquet
+    ✅ Dataset viewer is available (not showing error)
+    ✅ Preview showing rows and columns
+    ✅ All columns: address, before_optimized, optimized_80p, optimized_50p,
+       optimized_20p, and 5 label columns
+
+4d. Test loading in Python:
+    python -c "from datasets import load_dataset; ds = load_dataset('JakeClark/soliaudit-dasp-sequence-gnn-explainer'); print('✅ Success!'); print(ds)"
+
+    Should output:
+    ✅ Success!
+    DatasetDict({
+        train: Dataset({features: [...], num_rows: ...})
+        test:  Dataset({features: [...], num_rows: ...})
+    })
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "HUGGINGFACE_API_TOKEN not found in .env file"
+  FIX: Make sure .env file exists and contains your token:
+       cat .env
+       # Should show: HUGGINGFACE_API_TOKEN=hf_...
+
+ERROR: "CSV files not found"
+  FIX: Run Step 3A to generate the CSV files first:
+       python generate_optimized_exp_set.py --use-gnn
+
+ERROR: "Dataset viewer still shows error"
+  FIX: Wait 10 minutes and refresh browser. HuggingFace needs time to process.
+
+ERROR: Memory issues during generation
+  FIX: Use smaller dataset for testing:
+       python generate_optimized_exp_set.py --use-gnn --subset 1000 --upload-to-hf
+
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Generate + Upload (one command):
+  python generate_optimized_exp_set.py --use-gnn --upload-to-hf
+
+Upload existing CSVs only:
+  python upload_gnn_explainer_to_hf.py
+
+Upload all variants (GCN + GNN Explainer + GNN-no-explainer):
+  python upload_gcn_gnn_ne_to_hf.py
+
+View results:
+  https://huggingface.co/datasets/JakeClark/soliaudit-dasp-sequence-gnn-explainer
+
+Load in Python:
+  from datasets import load_dataset
+  ds = load_dataset("JakeClark/soliaudit-dasp-sequence-gnn-explainer")
+
+
+================================================================================
+DONE!
+================================================================================
+
+Once you see the Parquet files on HuggingFace and the dataset viewer works,
+the issue is fixed. You can now use the dataset in your training scripts.
+
+For more details, see:
+  - QUICK_GNN_EXPLAINER_UPLOAD.md (quick reference)
+  - FIX_GNN_EXPLAINER_DATASET.md (comprehensive guide)
+  - BEFORE_AFTER_COMPARISON.md (see what was fixed)

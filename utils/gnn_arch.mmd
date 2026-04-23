@@ -1,0 +1,9 @@
+graph LR
+    X["Node Features<br/>(4-dim: in_deg, out_deg,<br/>is_entry, is_exit)"] --> C1["GCNConv<br/>(4 → 64)"]
+    C1 --> R1["ReLU + Dropout(0.2)"]
+    R1 --> C2["GCNConv<br/>(64 → 64)"]
+    C2 --> R2["ReLU + Dropout(0.2)"]
+    R2 --> C3["GCNConv<br/>(64 → 64)"]
+    C3 --> P["global_mean_pool"]
+    P --> L["Linear(64 → 5)"]
+    L --> O["Output Logits<br/>(5 classes)"]

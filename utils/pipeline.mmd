@@ -1,0 +1,9 @@
+graph LR
+    A["Smart Contract<br/>(Solidity)"] --> B["AST/CFG<br/>(JSON/DOT)"]
+    B --> C["NetworkX<br/>DiGraph"]
+    C --> D["GNN/GCN<br/>Model<br/>(100 epochs)"]
+    D --> E["Node Importance<br/>Scoring"]
+    E --> F["Pruning<br/>(80%/50%/20%)"]
+    F --> G["DFS Sequence<br/>Linearization"]
+    G --> H["LLM Fine-tuning<br/>(BERT/CodeBERT/<br/>DistilBERT/GPT-2)"]
+    H --> I["Multi-label<br/>Classification<br/>(5 vuln types)"]

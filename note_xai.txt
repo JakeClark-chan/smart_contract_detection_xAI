@@ -14,8 +14,8 @@
 
 Old Tasks:
 1. Dataset: Load 2 dataset train va test, lay AST va label, them 1 cai Reentrancy tu dasp_v2, dua vao pickle Dataset
-2. Xem lai cau truc CFG, thong ke so node va edge truoc khi toi uu, luu vao pickle
-3. Xay dung mo hinh nhu de xuat: CFG -> XAI (GNN Explainer) to find sensitive nodes (& remove irrelevant nodes) -> convert to seq -> Bert-based model for classification
+2. Xem lai cau truc AST, thong ke so node va edge truoc khi toi uu, luu vao pickle
+3. Xay dung mo hinh nhu de xuat: AST -> XAI (GNN Explainer) to find sensitive nodes (& remove irrelevant nodes) -> convert to seq -> Bert-based model for classification
 4. Thong ke so node va edge sau khi toi uu, luu vao pickle
 5. Thuc nghiem va report ket qua theo cac chi so nhu accuracy, precision, recall, f1-score, time train, time inference tren moi mo hinh va truoc & sau khi toi uu
 6. So sanh ket qua truoc va sau khi toi uu bo node & edge

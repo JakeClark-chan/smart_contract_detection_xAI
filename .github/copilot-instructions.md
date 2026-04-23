@@ -35,7 +35,7 @@ This research project focuses on **smart contract vulnerability detection** usin
   - `torch-geometric` (GNN Explainer implementation)
   - `shap` (SHAP value threshold calculation)
   - `networkx` (Graph manipulation and DFS traversal)
-  - `pandas` (CFG column extraction from soliaudit_dasp_v2)
+  - `pandas` (AST column extraction from soliaudit_dasp_v2)
 
 ### Vulnerability Types to Detect
 Common smart contract vulnerabilities in scope:
@@ -104,7 +104,7 @@ pdflatex main.tex
 When implementing model training:
 ```python
 # Typical structure for AST processing with GNN Explainer
-ast_graph = parse_solidity_to_cfg(contract_code)  # Focus on CFG column
+ast_graph = parse_solidity_to_AST(contract_code)  # Focus on AST column
 gnn_explainer = GNNExplainer(model, epochs=200)
 node_importance = gnn_explainer.explain_node(ast_graph, node_idx)
 
@@ -120,10 +120,10 @@ tokens = tokenizer(sequence, max_length=512, truncation=True, padding=True)
 
 ### Dataset Expectations
 - **Dataset Location**: `soliaudit_dasp_v2` dataset in project root
-- **Focus Column**: **CFG (Control Flow Graph)** - this is the primary data source (large file, use efficiently)
+- **Focus Column**: **AST (Control Flow Graph)** - this is the primary data source (large file, use efficiently)
 - **SoliAudit format**: Solidity source code with vulnerability labels
 - **Multi-label classification**: One contract may have multiple vulnerabilities
-- **Preprocessing**: Extract CFG column, remove comments, normalize whitespace
+- **Preprocessing**: Extract AST column, remove comments, normalize whitespace
 
 ## Research Timeline (6 months)
 
@@ -137,12 +137,12 @@ tokens = tokenizer(sequence, max_length=512, truncation=True, padding=True)
 ### When Writing Code
 - **Use GNN Explainer**: Primary XAI method for identifying sensitive nodes
 - **SHAP Value Thresholding**: Filter nodes based on SHAP importance scores (define threshold empirically)
-- **CFG-First Approach**: Always load CFG column from `soliaudit_dasp_v2` dataset (memory-efficient chunking recommended)
+- **AST-First Approach**: Always load AST column from `soliaudit_dasp_v2` dataset (memory-efficient chunking recommended)
 - **Model Priority**: Start BERT baseline, then DistilBERT for comparison
 - **Prioritize interpretability**: This is XAI research—add SHAP value visualization, attention heatmaps
 - **Handle Vietnamese text**: Comments and documentation may mix English/Vietnamese
 - **Token efficiency**: Always consider BERT's 512 token limit when designing sequences
-- **Graph operations**: Expect frequent CFG manipulation—use efficient libraries like NetworkX
+- **Graph operations**: Expect frequent AST manipulation—use efficient libraries like NetworkX
 - **Place scripts in root**: Keep Python files alongside `note_xai.txt`, not in subdirectories
 
 ### When Analyzing Vulnerabilities
@@ -158,7 +158,7 @@ tokens = tokenizer(sequence, max_length=512, truncation=True, padding=True)
 ## Key Files Reference
 
 - `note_xai.txt`: Experiment plan with model comparisons (Vietnamese notes)
-- `soliaudit_dasp_v2`: Dataset file - **use CFG column only** (large file, handle with care)
+- `soliaudit_dasp_v2`: Dataset file - **use AST column only** (large file, handle with care)
 - `NCKHSV_Graph_SmartContract_Nov2024/main.tex`: Research proposal (Vietnamese, 30-page target)
 - `NCKHSV_Graph_SmartContract_Nov2024/ref.bib`: Academic references (Liu2021, Sendner2023, etc.)
 - `NCKHSV_Graph_SmartContract_Nov2024/Figures/Tong_Quan_Mo_Hinh_NCKH.png`: Architecture diagram
@@ -168,7 +168,7 @@ tokens = tokenizer(sequence, max_length=512, truncation=True, padding=True)
 ✅ **XAI Method**: GNN Explainer (not SHAP alone)  
 ✅ **Node Selection**: SHAP value threshold (define threshold empirically during experiments)  
 ✅ **Starting Models**: BERT → DistilBERT (baseline before trying CodeBERT/GPT-2)  
-✅ **Dataset**: `soliaudit_dasp_v2` dataset in root, **focus on CFG column**  
+✅ **Dataset**: `soliaudit_dasp_v2` dataset in root, **focus on AST column**  
 ✅ **Code Location**: Python scripts in project root directory  
 
 ## Common Implementation Questions
@@ -176,4 +176,4 @@ tokens = tokenizer(sequence, max_length=512, truncation=True, padding=True)
 If implementing code, clarify:
 1. What SHAP value threshold to use? (suggest: start with top 20% of nodes or score > 0.5)
 2. For DFS traversal, start from function entry points or vulnerability patterns?
-3. How to handle CFG column parsing? (JSON format? Graph representation?)
+3. How to handle AST column parsing? (JSON format? Graph representation?)

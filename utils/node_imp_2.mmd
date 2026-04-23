@@ -1,0 +1,8 @@
+graph LR
+    A["Đồ thị gốc<br>(x, edge_index)"] --> B["Khởi tạo Node/Edge Mask<br>(Learnable parameters)"]
+    B --> C["Vòng lặp Tối ưu hoá<br>(100 Epochs)"]
+    C --> D["GNN Forward Pass<br>(Áp dụng Mask)"]
+    D --> E["Đánh giá Mất mát<br>(Mutual Information)"]
+    E --> F["Cập nhật Mask<br>(Backprop)"]
+    F -.->|Lặp lại 100 lần| C
+    F --> G["Trích xuất node_mask<br>làm Điểm quan trọng"]

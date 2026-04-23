@@ -1,0 +1,8 @@
+graph LR
+    A["Node Features<br>(x)"] --> B["Clone &<br>requires_grad=True"]
+    B --> C["GNN Forward Pass<br>(3 Convs + Pool + Linear)"]
+    C --> D["Logits Output<br>(out)"]
+    D --> E["Tính tổng Logits<br>(out.sum)"]
+    E --> F["Backpropagation<br>(.backward)"]
+    F --> G["Extract Gradients<br>(x.grad)"]
+    G --> H["Điểm quan trọng<br>L2-Norm(x.grad ⊙ x)"]

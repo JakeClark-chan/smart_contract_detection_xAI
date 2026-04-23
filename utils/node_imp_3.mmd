@@ -1,0 +1,6 @@
+graph LR
+    A["Node Features<br>(x)"] --> B["Tắt Gradient<br>(torch.no_grad)"]
+    B --> C["Conv1 + ReLU<br>(Thu thập 1-hop)"]
+    C --> D["Conv2<br>(Thu thập 2-hop)"]
+    D --> E["GCN Embeddings<br>(Dừng sớm, bỏ Pool/Linear)"]
+    E --> F["Điểm quan trọng<br>L2-Norm(Embeddings)"]
