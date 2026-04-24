@@ -24,7 +24,7 @@ Cùng với sự mở rộng của hệ sinh thái Web3, các hợp đồng thô
 
 ### 1.2 Động lực nghiên cứu
 
-Trước thực trạng an ninh mạng đáng báo động trong không gian blockchain, nhiều phương pháp tiếp cận đã được đề xuất nhằm nhận diện sớm các lỗ hổng. Các phương pháp truyền thống như phân tích tĩnh (static analysis) hay thực thi tự động (symbolic execution) mặc dù phổ biến nhưng thường gặp hạn chế về tỷ lệ dương tính giả (false positive) cao và không thể nắm bắt được những ngữ nghĩa phức tạp trong mã. Gần đây, việc áp dụng các mô hình học sâu, đặc biệt là Mạng nơ-ron đồ thị (Graph Neural Network - GNN) đã mang lại những bước tiến đáng kể. Bằng cách biểu diễn hợp đồng thông minh dưới dạng Đồ thị luồng điều khiển (Control Flow Graph - CFG) hay Đồ thị Cây cú pháp trừu tượng (Abstract Syntax Tree - AST), GNN có thể khai thác được các mối quan hệ cấu trúc giữa các khối mã. 
+Trước thực trạng an ninh mạng đáng báo động trong không gian blockchain, nhiều phương pháp tiếp cận đã được đề xuất nhằm nhận diện sớm các lỗ hổng. Các phương pháp truyền thống như phân tích tĩnh (static analysis) hay thực thi tự động (symbolic execution) mặc dù phổ biến nhưng thường gặp hạn chế về tỷ lệ dương tính giả (false positive) cao và không thể nắm bắt được những ngữ nghĩa phức tạp trong mã. Gần đây, việc áp dụng các mô hình học sâu, đặc biệt là Mạng nơ-ron đồ thị (Graph Neural Network - GNN) đã mang lại những bước tiến đáng kể. Bằng cách biểu diễn hợp đồng thông minh dưới dạng Đồ thị Cây cú pháp trừu tượng (Abstract Syntax Tree - AST), GNN có thể khai thác được các mối quan hệ cấu trúc giữa các khối mã. 
 
 Tuy nhiên, hiệu quả của các mô hình GNN phụ thuộc rất lớn vào chất lượng của biểu diễn đồ thị và đòi hỏi kiến thức chuyên môn sâu để tinh chỉnh. Sự xuất hiện của Mô hình ngôn ngữ lớn (Large Language Models - LLMs) như BERT, CodeBERT hay GPT đã cung cấp một hướng tiếp cận thay thế mạnh mẽ nhờ khả năng thấu hiểu ngữ cảnh và ngữ nghĩa sâu sắc của văn bản mã nguồn. Dù vậy, khi áp dụng LLM vào hợp đồng thông minh, một rào cản kỹ thuật nghiêm trọng xuất hiện: giới hạn về độ dài chuỗi đầu vào. Phần lớn các mô hình dựa trên kiến trúc Transformer (như BERT) chỉ cho phép độ dài tối đa là 512 tokens. Trong khi đó, thống kê thực tế cho thấy các đồ thị AST của hợp đồng thông minh trung bình chứa tới hơn 835 nút, tương đương với hàng nghìn tokens khi chuyển đổi thành chuỗi. Việc cắt cụt (truncate) chuỗi mã để vừa với giới hạn 512 tokens chắc chắn sẽ dẫn đến việc loại bỏ nhiều đoạn mã quan trọng, bao gồm cả những vị trí chứa lỗ hổng cốt lõi, làm suy giảm nghiêm trọng khả năng phát hiện của mô hình.
 
@@ -43,7 +43,7 @@ Nghiên cứu này được thực hiện với ba mục tiêu cốt lõi sau:
 ### 1.4 Phạm vi nghiên cứu
 
 Để đảm bảo tính khả thi và đánh giá chuyên sâu, nghiên cứu được thiết lập với các ranh giới sau:
-- **Tập dữ liệu:** Phân tích trực tiếp trên tập dữ liệu SoliAudit chứa 10.555 mẫu hợp đồng thông minh đã được xử lý thành đồ thị AST/CFG. Dữ liệu tập trung giải quyết phân loại 5 lỗ hổng nghiêm trọng nhất thuộc chuẩn DASP v2: Lỗi số học (Arithmetic), Không kiểm tra giá trị trả về (Unchecked Return), Tấn công từ chối dịch vụ (DoS), Thao túng thời gian (Time manipulation), và Tấn công chui lại (Reentrancy).
+- **Tập dữ liệu:** Phân tích trực tiếp trên tập dữ liệu SoliAudit chứa 10.555 mẫu hợp đồng thông minh đã được xử lý thành đồ thị AST. Dữ liệu tập trung giải quyết phân loại 5 lỗ hổng nghiêm trọng nhất thuộc chuẩn DASP v2: Lỗi số học (Arithmetic), Không kiểm tra giá trị trả về (Unchecked Return), Tấn công từ chối dịch vụ (DoS), Thao túng thời gian (Time manipulation), và Tấn công chui lại (Reentrancy).
 - **Phạm vi mô hình:** Nghiên cứu so sánh chéo 4 biến thể LLM: một mô hình xử lý ngôn ngữ truyền thống (BERT), một phiên bản nén nhẹ (DistilBERT), một mô hình chuyên biệt cho mã nguồn (CodeBERT), và một mô hình sinh tự hồi quy (GPT-2).
 - **Phạm vi kỹ thuật XAI:** Nghiên cứu chỉ tập trung khai thác điểm số giải thích (Importance Scores) trên mạng GCN (Graph Convolutional Network) để trích xuất đặc trưng cấu trúc (Structural Features) mức AST, chưa tính tới việc mở rộng cho các luồng dữ liệu cấp độ bytecode (Data Dependency Graph) cực kỳ phức tạp.
 
@@ -60,13 +60,12 @@ Nghiên cứu này tập trung vào 5 loại lỗ hổng phổ biến nhất the
 4. **Time Manipulation (Thao túng thời gian):** Xảy ra khi logic của hợp đồng phụ thuộc vào `block.timestamp`. Miner có khả năng tinh chỉnh nhẹ timestamp của khối, qua đó thao túng các hàm sinh số ngẫu nhiên hoặc các điều kiện thời gian để trục lợi.
 5. **Reentrancy (Tấn công chui lại):** Lỗ hổng nguy hiểm nhất, cho phép kẻ tấn công gọi lại chính hàm đang thực thi trước khi trạng thái của hàm đó (như số dư tài khoản) được cập nhật. Kẻ tấn công có thể rút cạn tiền của hợp đồng nạn nhân thông qua một vòng lặp gọi đệ quy liên tục.
 
-### 2.2 Đồ thị Cây cú pháp trừu tượng (AST) và Đồ thị luồng điều khiển (CFG)
+### 2.2 Đồ thị Cây cú pháp trừu tượng (AST)
 
-Để máy tính có thể "hiểu" và phân tích cấu trúc của mã nguồn, các đoạn mã Solidity thường được biên dịch và biểu diễn dưới dạng đồ thị. Hai dạng phổ biến nhất là Đồ thị luồng điều khiển (Control Flow Graph - CFG) và Đồ thị Cây cú pháp trừu tượng (Abstract Syntax Tree - AST). 
+Để máy tính có thể "hiểu" và phân tích cấu trúc của mã nguồn, các đoạn mã Solidity thường được biên dịch và biểu diễn dưới dạng đồ thị. Một trong những dạng biểu diễn phổ biến nhất là Đồ thị Cây cú pháp trừu tượng (Abstract Syntax Tree - AST). 
 - **AST** là một biểu diễn dạng cây của cấu trúc mã nguồn mức cao, nơi mỗi nút (node) biểu diễn một cấu trúc ngữ pháp như khai báo biến, biểu thức điều kiện, hoặc vòng lặp. 
-- **CFG** biểu diễn mọi đường đi có thể có của luồng thực thi chương trình, với các nút là các khối lệnh cơ bản (basic blocks) và các cạnh (edges) biểu diễn sự chuyển hướng điều khiển.
 
-Trong nghiên cứu này, mã nguồn hợp đồng thông minh được chuyển đổi thành định dạng AST/CFG (dưới dạng file JSON hoặc GraphViz DOT), cung cấp một bức tranh toàn cảnh về cả mặt cú pháp lẫn luồng logic. Việc biểu diễn dưới dạng đồ thị giúp giữ lại được các đặc trưng ngữ nghĩa quan trọng mà việc chỉ đọc mã nguồn dưới dạng văn bản thuần túy (plain text) có thể bỏ sót, một hướng tiếp cận đã được chứng minh tính hiệu quả trong nhiều nghiên cứu về phát hiện lỗ hổng và làm rối mã (Wu et al., 2021; Zhang et al., 2023).
+Trong nghiên cứu này, mã nguồn hợp đồng thông minh được chuyển đổi thành định dạng AST (dưới dạng file JSON), cung cấp một bức tranh toàn cảnh về mặt cú pháp. Việc biểu diễn dưới dạng đồ thị giúp giữ lại được các đặc trưng ngữ nghĩa quan trọng mà việc chỉ đọc mã nguồn dưới dạng văn bản thuần túy (plain text) có thể bỏ sót, một hướng tiếp cận đã được chứng minh tính hiệu quả trong nhiều nghiên cứu về phát hiện lỗ hổng và làm rối mã (Wu et al., 2021; Zhang et al., 2023).
 
 ### 2.3 Mô hình ngôn ngữ lớn (LLM) trong phân tích mã nguồn
 
@@ -96,7 +95,7 @@ Gần đây, việc đưa LLM vào phân tích mã nguồn blockchain đang tr�
 
 ![Tổng quan Pipeline](results/images/pipeline.png)
 
-Hệ thống đề xuất hoạt động dựa trên một pipeline (luồng xử lý) khép kín, được thiết kế để chuyển đổi mã nguồn phi cấu trúc thành dữ liệu tối ưu cho Mô hình ngôn ngữ lớn (LLM). Cụ thể, luồng xử lý bắt đầu bằng việc chuyển đổi mã nguồn Solidity thành Đồ thị Cây cú pháp trừu tượng (AST) và Đồ thị luồng điều khiển (CFG) dưới dạng JSON/DOT, kế thừa tư tưởng từ phương pháp biểu diễn học máy của Wu et al. (2021). Đồ thị này sau đó được nạp vào đối tượng `DiGraph` của thư viện NetworkX để trích xuất các đặc trưng hình học. Điểm cốt lõi của pipeline nằm ở bước huấn luyện một mô hình Graph Convolutional Network (GCN) trong 100 epochs, từ đó ứng dụng GNN Explainer để tính toán điểm số quan trọng (Node Importance Scoring) cho từng nút dựa trên phương pháp tối ưu hoá mặt nạ học được (tương tự như cách SHAP định lượng giá trị đóng góp của Lundberg & Lee, 2017). Các nút không mang thông tin nhạy cảm về lỗ hổng sẽ bị loại bỏ thông qua cơ chế cắt tỉa (Pruning) ở các ngưỡng 80%, 50% hoặc 20%. Cuối cùng, đồ thị đã được cô đặc sẽ trải qua thuật toán duyệt theo chiều sâu (DFS) để chuyển đổi ngược lại thành dạng chuỗi một chiều (1D Sequence) trước khi được tinh chỉnh (fine-tuning) qua các LLMs (BERT, DistilBERT, CodeBERT, GPT-2) cho bài toán phân loại đa nhãn 5 loại lỗ hổng.
+Hệ thống đề xuất hoạt động dựa trên một pipeline (luồng xử lý) khép kín, được thiết kế để chuyển đổi mã nguồn phi cấu trúc thành dữ liệu tối ưu cho Mô hình ngôn ngữ lớn (LLM). Cụ thể, luồng xử lý bắt đầu bằng việc chuyển đổi mã nguồn Solidity thành Đồ thị Cây cú pháp trừu tượng (AST) dưới dạng JSON, kế thừa tư tưởng từ phương pháp biểu diễn học máy của Wu et al. (2021). Đồ thị này sau đó được nạp vào đối tượng `DiGraph` của thư viện NetworkX để trích xuất các đặc trưng hình học. Điểm cốt lõi của pipeline nằm ở bước huấn luyện một mô hình Graph Convolutional Network (GCN) trong 100 epochs, từ đó ứng dụng GNN Explainer để tính toán điểm số quan trọng (Node Importance Scoring) cho từng nút dựa trên phương pháp tối ưu hoá mặt nạ học được (tương tự như cách SHAP định lượng giá trị đóng góp của Lundberg & Lee, 2017). Các nút không mang thông tin nhạy cảm về lỗ hổng sẽ bị loại bỏ thông qua cơ chế cắt tỉa (Pruning) ở các ngưỡng 80%, 50% hoặc 20%. Cuối cùng, đồ thị đã được cô đặc sẽ trải qua thuật toán duyệt theo chiều sâu (DFS) để chuyển đổi ngược lại thành dạng chuỗi một chiều (1D Sequence) trước khi được tinh chỉnh (fine-tuning) qua các LLMs (BERT, DistilBERT, CodeBERT, GPT-2) cho bài toán phân loại đa nhãn 5 loại lỗ hổng.
 
 ### 3.2 Tập dữ liệu và Môi trường thực nghiệm
 
@@ -127,12 +126,11 @@ Biểu đồ trên thể hiện sự phân bổ không đồng đều (imbalance
 | `torch` | ≥2.9 | Deep learning framework |
 | `torch-geometric` | ≥2.7 | GCNConv, GNNExplainer, graph data |
 | `transformers` | ≥4.57 | BERT, CodeBERT, DistilBERT, GPT-2 (HuggingFace) |
-| `networkx` | ≥3.5 | Biểu diễn và xử lý đồ thị AST/CFG |
+| `networkx` | ≥3.5 | Biểu diễn và xử lý đồ thị AST |
 | `datasets` | ≥2.16 | Tải/upload dataset từ HuggingFace Hub |
 | `scikit-learn` | ≥1.7 | Metrics: classification_report, precision/recall/f1 |
 | `pandas` | ≥2.3 | Xử lý dữ liệu dạng bảng (CSV) |
 | `numpy` | ≥2.3 | Tính toán số học |
-| `pydot` | ≥4.0 | Parsing GraphViz DOT format |
 | `python-dotenv` | ≥1.0 | Quản lý biến môi trường (API tokens) |
 
 ### 3.3 Kiến trúc mô hình GNN (GNNClassifier) — Dùng chung cho cả 3 kịch bản
@@ -370,8 +368,8 @@ Nhằm làm rõ mức độ đóng góp của từng loại lỗ hổng vào hi�
 | **Time Manipulation** | P / R / F1 | 0.84 / 0.81 / **0.82** | 0.75 / 0.68 / **0.71** | 0.82 / 0.76 / **0.79** |
 | **Reentrancy** | P / R / F1 | 0.89 / 0.91 / **0.90** | 0.80 / 0.90 / **0.85** | 0.89 / 0.91 / **0.90** |
 | --- | --- | --- | --- | --- |
-| **Hamming Score** (Độ chính xác nhãn) | | 0.8712 | 0.8015 | 0.8644 |
-| **Hamming Loss** (Tỷ lệ phân loại sai) | | 0.0844 | 0.1345 | 0.0908 |
+| **Hamming Score** (Độ chính xác nhãn) | | 0.8805 | 0.8015 | 0.8644 |
+| **Hamming Loss** (Tỷ lệ phân loại sai) | | 0.0804 | 0.1345 | 0.0908 |
 
 Bảng số liệu trên chỉ ra sự chênh lệch rõ rệt về mức độ dễ nhận diện của các lỗ hổng:
 1. **Lỗ hổng đóng góp hiệu suất cao nhất (Arithmetic & Unchecked Return):** Lỗi số học (Arithmetic) luôn đạt F1 cực cao (0.97-0.98) bất kể kịch bản nào. Lý do là đặc trưng cú pháp của lỗi này (sự hiện diện của các toán tử `+`, `-`, `*`) biểu hiện rất rõ ràng trên đồ thị cây cú pháp (AST). Tương tự, Unchecked Return cũng liên quan đến các lệnh gọi cụ thể (`call.value`) dễ bị GNN nắm bắt. Việc mô hình nhận diện cực tốt 2 nhãn này đã kéo F1-Score tổng thể lên rất cao.
